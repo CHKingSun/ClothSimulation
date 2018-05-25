@@ -1,0 +1,9 @@
+
+out
+Debug
+
+imgui.ini
+*.db
+*.user
+*.opendb
+.vs

@@ -1,0 +1,66 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="lib">
+      <UniqueIdentifier>{7c95b815-34d7-4245-b48b-fe6381483e61}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="lib\GLFW">
+      <UniqueIdentifier>{09946c88-4a05-4fe4-9f50-8a0ca815148d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="lib\GLEW">
+      <UniqueIdentifier>{60a789fb-890f-44d6-b846-9ddb7d60e4e2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="lib\stb">
+      <UniqueIdentifier>{580b397f-df1a-41fb-86d3-c6fa025d3f27}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="lib\imgui">
+      <UniqueIdentifier>{c16a68b5-8183-4e44-826f-3d63921c6a4b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src">
+      <UniqueIdentifier>{c92c7e1b-facd-4c07-8897-c7f5d293c9be}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\Window.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Header.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\math\Mat3.h" />
+    <ClInclude Include="src\math\Mat4.h" />
+    <ClInclude Include="src\math\Quaternion.h" />
+    <ClInclude Include="src\math\Vec2.h" />
+    <ClInclude Include="src\math\Vec3.h" />
+    <ClInclude Include="src\math\Vec4.h" />
+    <ClInclude Include="src\math\transform.h" />
+    <ClInclude Include="src\math\function.h" />
+    <ClInclude Include="src\render\Shader.h" />
+    <ClInclude Include="src\render\VertexArray.h" />
+    <ClInclude Include="src\render\VertexBuffer.h" />
+    <ClInclude Include="src\object\Arrow.h" />
+    <ClInclude Include="src\object\Object3D.h" />
+    <ClInclude Include="src\render\BackBuffer.h" />
+    <ClInclude Include="lib\imgui\imconfig.h" />
+    <ClInclude Include="lib\imgui\imgui.h" />
+    <ClInclude Include="lib\imgui\imgui_impl_glfw_gl3.h" />
+    <ClInclude Include="lib\imgui\imgui_internal.h" />
+    <ClInclude Include="lib\imgui\stb_rect_pack.h" />
+    <ClInclude Include="lib\imgui\stb_textedit.h" />
+    <ClInclude Include="lib\imgui\stb_truetype.h" />
+    <ClInclude Include="src\util\Camera.h" />
+    <ClInclude Include="src\object\Face.h" />
+    <ClInclude Include="src\object\Plane.h" />
+    <ClInclude Include="src\util\Light.h" />
+    <ClInclude Include="src\util\Material.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\main.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="lib\imgui\imgui.cpp" />
+    <ClCompile Include="lib\imgui\imgui_impl_glfw_gl3.cpp" />
+    <ClCompile Include="lib\imgui\imgui_demo.cpp" />
+    <ClCompile Include="lib\imgui\imgui_draw.cpp" />
+  </ItemGroup>
+</Project>
