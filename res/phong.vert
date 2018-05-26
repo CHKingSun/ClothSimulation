@@ -22,11 +22,12 @@ out vec2 v_texcoord;
 void main() {
     vec3 m_pos = u_mPos + (u_mRotate * (u_mScale * a_position));
     gl_Position = u_proj * (u_view * vec4(m_pos, 1.0));
-    // gl_Position = vec4(m_pos, 1.0);
-
+    
     if(a_normal == vec3(0.0f)) v_N = a_normal;
-    else v_N = normalize(u_mRotate * (u_mScale * a_normal));
-    v_E = normalize(p_eye - m_pos);
-    v_mPos = m_pos;
+    else {
+        v_N = normalize(u_mRotate * (u_mScale * a_normal));
+        v_E = normalize(p_eye - m_pos);
+        v_mPos = m_pos;
+    }
     v_texcoord = a_texcoord;
 }

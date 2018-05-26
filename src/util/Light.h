@@ -46,13 +46,13 @@ namespace KLight {
 			diffuse(Material::GREY), specular(Material::GREY),
 			kc(1.0), kl(0.045), kq(0.0075) {}
 
-		Light(const tvec3 &pos): factor(1.0), position(pos),
+		Light(const tvec3 &pos): factor(1.0), position(pos), ambient(Material::GREY),
 			diffuse(Material::GREY), specular(Material::GREY),
 			kc(1.0), kl(0.045), kq(0.0075) {}
 
 		Light(const tvec3 &pos, const tcolor &ambient,
 			const tcolor &diffuse, const tcolor &specular):
-			factor(1.0), position(pos), diffuse(diffuse), specular(specular),
+			factor(1.0), position(pos), ambient(ambient), diffuse(diffuse), specular(specular),
 			kc(1.0), kl(0.045), kq(0.0075) {}
 
 		Light(const tvec3 &pos, const tcolor &ambient, const tcolor &diffuse,
@@ -63,7 +63,7 @@ namespace KLight {
 		Light(const tvec3 &pos, const tcolor &ambient, const tcolor &diffuse,
 			const tcolor &specular, const Kfloat &factor,
 			const Kfloat &kc, const Kfloat &kl, const Kfloat &kq):
-			factor(1.0), position(pos), diffuse(diffuse), specular(specular),
+			factor(1.0), position(pos), ambient(ambient), diffuse(diffuse), specular(specular),
 			kc(kc), kl(kl), kq(kq) {}
 
 		void bindUniform(const KShader::Shader* shader)const {

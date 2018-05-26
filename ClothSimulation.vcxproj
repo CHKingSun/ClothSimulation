@@ -39,6 +39,7 @@
     <ClInclude Include="src\object\Face.h" />
     <ClInclude Include="src\object\Object3D.h" />
     <ClInclude Include="src\object\Plane.h" />
+    <ClInclude Include="src\object\Sphere.h" />
     <ClInclude Include="src\render\BackBuffer.h" />
     <ClInclude Include="src\render\Shader.h" />
     <ClInclude Include="src\render\VertexArray.h" />

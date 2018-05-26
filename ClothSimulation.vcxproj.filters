@@ -53,6 +53,7 @@
     <ClInclude Include="src\object\Plane.h" />
     <ClInclude Include="src\util\Light.h" />
     <ClInclude Include="src\util\Material.h" />
+    <ClInclude Include="src\object\Sphere.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">

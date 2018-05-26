@@ -41,8 +41,7 @@ vec4 calLight(Light l, vec3 N, vec3 E, vec3 m_pos) { //N and E are normalized;
     float attenuation = 1.0 / (l.kc + dis * l.kl + dis * dis * l.kq);
     vec3 L = normalize(l_dir);
     float cosT = max(dot(L, N), 0.0);
-    float cosA = 0.0;
-    if(cosT != 0.0) cosA = max(dot(N, normalize(L + E)), 0.0);
+    float cosA = max(dot(N, normalize(L + E)), 0.0);
 
     vec4 color = vec4(0.0);
     attenuation *= l.factor;
@@ -56,7 +55,7 @@ void main() {
 
     fragColor = vec4(0.0);
 
-    if(u_light.enable) fragColor = calLight(u_light, v_N, v_E, v_mPos);
+    if(v_N != vec3(0.0f) && u_light.enable) fragColor = calLight(u_light, v_N, v_E, v_mPos);
     else fragColor = u_ambient;
 
     if(u_texture.enable) fragColor *= texture(u_texture.tex, v_texcoord);

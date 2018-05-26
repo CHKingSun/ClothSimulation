@@ -84,8 +84,7 @@ namespace KObject {
 			tex_coords->reserve(count * 4);
 			indices = new std::vector<Face<Kuint>>();
 			indices->reserve(count * 2);
-			material = new KMaterial::Material();
-			material->setTexture(RES_PATH + "stone.png");
+			material = new KMaterial::Material(RES_PATH + "stone.png");
 
 			generate(width, height, xslices, yslices);
 			initArray();
@@ -107,6 +106,10 @@ namespace KObject {
 		void bindUniform(const KShader::Shader* shader)const override {
 			Object3D::bindUniform(shader);
 			material->bindUniform(shader);
+		}
+
+		void unActiveTexture(const KShader::Shader* shader)const {
+			material->unactiveTexture(shader);
 		}
 
 		void render()const override {
