@@ -10,12 +10,14 @@
 #include "../util/Light.h"
 #include "../object/Plane.h"
 #include "../object/Sphere.h"
+#include "../object/Cloth.h"
 
 namespace KRenderer {
 	class ClothRenderer : public Renderer {
 	private:
 		KObject::Plane* floor;
 		KObject::Sphere* sphere;
+		KObject::Cloth* cloth;
 		
 		KCamera::Camera* camera;
 		KLight::Light* light;
@@ -27,23 +29,27 @@ namespace KRenderer {
 			camera(nullptr), light(nullptr) {
 			shader->bind();
 
-			floor = new KObject::Plane(40, 40, 40, 40);
+			floor = new KObject::Plane(80, 80, 40, 40);
 			floor->rotate(90, tvec3(-1, 0, 0));
 
 			sphere = new KObject::Sphere(3, 30, 30);
 			sphere->translate(tvec3(0, 2, 0));
 
-			camera = new KCamera::Camera(tvec3(0, 10, 20));
+			Kuint size = 30;
+			cloth = new KObject::Cloth(size);
+
+			camera = new KCamera::Camera(tvec3(0, size, size * 2));
 			tvec2 wSize = window->getWindowSize();
 			camera->setPerspective(60.0f, wSize.x / wSize.y, 0.1f, 1000.0f);
 			camera->rotateView(18, tvec3(-1, 0, 0));
 
-			light = new KLight::Light(tvec3(0, 10, 0));
-			light->factor = 1.5;
+			light = new KLight::Light(tvec3(0, size + 2, 0));
+			light->factor = size * 0.15;
 		}
 		~ClothRenderer()override {
 			delete floor;
 			delete sphere;
+			delete cloth;
 			delete camera;
 			delete light;
 		}
@@ -58,6 +64,7 @@ namespace KRenderer {
 
 			tvec2 wSize;
 			tvec2 last_mouse = mouse_pos;
+			Kfloat now_time = window->getRunTime();
 
 			camera->bindUniform(shader);
 			light->bindUniform(shader);
@@ -76,11 +83,14 @@ namespace KRenderer {
 
 				ImGui::Begin("GUI", nullptr, flags);
 				ImGui::SetWindowPos(ImVec2(wSize.x, 0));
+				ImGui::SetWindowSize(ImVec2(300, wSize.y));
 
 				ImGui::SetWindowFontScale(1.2);
 				ImGui::Text("Your screen now is %.2f fps.", ImGui::GetIO().Framerate);
 				ImGui::Text("Your mouse pos is %.0f, %.0f", mouse_pos.x, mouse_pos.y);
 				ImGui::Text("Your last mouse pos is %.0f, %.0f", last_mouse.x, last_mouse.y);
+
+				cloth->drawGui();
 
 				//floor->drawImGui();
 				//floor->bindPosition(shader);
@@ -107,11 +117,18 @@ namespace KRenderer {
 				}
 				last_mouse = mouse_pos;
 
+				cloth->bindUniform(shader);
+				cloth->updatePosition(window->getRunTime() - now_time);
+				now_time = window->getRunTime();
+				cloth->render();
+
 				floor->bindUniform(shader);
 				floor->render();
+				floor->unActiveTexture(shader);
 
-				sphere->bindUniform(shader);
-				sphere->render();
+				//sphere->bindUniform(shader);
+				//sphere->render();
+				//sphere->unActiveTexture(shader);
 
 				window->update();
 			}

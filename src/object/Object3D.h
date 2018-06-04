@@ -118,7 +118,6 @@ namespace KObject {
 		}
 
 		virtual void render()const = 0;
-		virtual Kuint getCount()const = 0;
 
 #ifdef IMGUI_ENABLE
 		virtual void drawImGui() {

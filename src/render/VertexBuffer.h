@@ -40,8 +40,8 @@ namespace KBuffer {
 		}
 
 		void allocate(Kuint offset, Kuint size, const void* data) {
-			glBindBuffer(GL_ARRAY_BUFFER, id);
-			glBufferSubData(GL_ARRAY_BUFFER, offset, size, data);
+			glBindBuffer(type, id);
+			glBufferSubData(type, offset, size, data);
 		}
 
 		void bind()const {

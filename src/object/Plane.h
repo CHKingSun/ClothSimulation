@@ -119,10 +119,6 @@ namespace KObject {
 
 			unBind();
 		}
-
-		Ksize getCount()const override {
-			return count * 6;
-		}
 	};
 }
 
