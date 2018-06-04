@@ -59,6 +59,14 @@ namespace KVector{
             return this->values[n];
         }
 
+		inline Kboolean operator==(const Vec4& v)const {
+			return x == v.x && y == v.y && z == v.z && w == v.w;
+		}
+		inline Kboolean operator!=(const Vec4& v)const {
+			//return x != v.x || y != v.y || z != v.z || w != v.w;
+			return !this->operator==(v);
+		}
+
         Vec4& operator=(const Vec4 &v){
             set(v.x, v.y, v.z, v.w);
             return *this;

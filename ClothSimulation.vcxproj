@@ -35,11 +35,13 @@
     <ClInclude Include="src\math\Vec2.h" />
     <ClInclude Include="src\math\Vec3.h" />
     <ClInclude Include="src\math\Vec4.h" />
-    <ClInclude Include="src\object\Arrow.h" />
+    <ClInclude Include="src\object\Cloth.h" />
     <ClInclude Include="src\object\Face.h" />
     <ClInclude Include="src\object\Object3D.h" />
     <ClInclude Include="src\object\Plane.h" />
     <ClInclude Include="src\object\Sphere.h" />
+    <ClInclude Include="src\render\ClothRenderer.h" />
+    <ClInclude Include="src\render\Renderer.h" />
     <ClInclude Include="src\render\BackBuffer.h" />
     <ClInclude Include="src\render\Shader.h" />
     <ClInclude Include="src\render\VertexArray.h" />

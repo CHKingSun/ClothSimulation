@@ -51,6 +51,14 @@ namespace KVector{
             return this->values[n]; //for const object, just get value.
         }
 
+		inline Kboolean operator==(const Vec2& v)const {
+			return x == v.x && y == v.y;
+		}
+		inline Kboolean operator!=(const Vec2& v)const {
+			//return x != v.x || y != v.y;
+			return !this->operator==(v);
+		}
+
         Vec2& operator=(const Vec2 &v){
             set(v.x, v.y);
             return *this;

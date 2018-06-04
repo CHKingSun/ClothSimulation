@@ -32,7 +32,7 @@ namespace KCamera{
 
 		tmat4 toViewMatrix()const {
 			tmat3 tmp(view.toMat3());
-			return tmat4(tmp, tmp * -position) *= (-rotate).toMat4();
+			return tmat4(tmp, tmp * -position) *= rotate.toMat4();
 		}
 
     public:
@@ -68,7 +68,7 @@ namespace KCamera{
             position = v;
         }
 		void setRotation(const Kfloat& angle, const tvec3& axis) {
-			rotate = tquaternion(angle, axis);
+			rotate = tquaternion(-angle, axis);
 		}
         void setView(const tvec3 &eye, const tvec3 &center, const tvec3 &up){
             //u-v-n is left-hand coordinate
@@ -94,7 +94,7 @@ namespace KCamera{
         }
 
         void rotateCamera(const Kfloat &angle, const tvec3 &v){
-            rotate = tquaternion(angle, v) * rotate;
+            rotate *= tquaternion(-angle, v);
         }
         void rotateView(const Kfloat &angle, const tvec3 &v){
             //note: view is a inverse rotate matrix(also transpose matrix),

@@ -53,7 +53,15 @@ namespace KVector{
         const Kfloat& operator[](Kuint n)const {
             assert(n >= 0 && n < 3);
             return this->values[n];
-        }
+		}
+
+		inline Kboolean operator==(const Vec3& v)const {
+			return x == v.x && y == v.y && z == v.z;
+		}
+		inline Kboolean operator!=(const Vec3& v)const {
+			//return x != v.x || y != v.y || z != v.z;
+			return !this->operator==(v);
+		}
 
         Vec3& operator=(const Vec3 &v){
             set(v.x, v.y, v.z);
