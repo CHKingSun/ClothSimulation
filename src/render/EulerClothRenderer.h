@@ -1,32 +1,37 @@
 //
-// Created by KingSun on 2018/06/04
+// Created by KingSun on 2018/06/06
 //
 
-#ifndef CLOTH_RENDERER_H
-#define CLOTH_RENDERER_H
+#ifndef EULER_CLOTH_RENDERER_H
+#define EULER_CLOTH_RENDERER_H
 
 #include "./Renderer.h"
 #include "../util/Camera.h"
 #include "../util/Light.h"
 #include "../object/Plane.h"
 #include "../object/Sphere.h"
-#include "../object/Cloth.h"
+#include "../object/EulerCloth.h"
 
 namespace KRenderer {
-	class ClothRenderer : public Renderer {
+	class EulerClothRenderer : public Renderer {
 	private:
+		KShader::Shader* back_shader;
+
 		KObject::Plane* floor;
 		KObject::Sphere* sphere;
-		KObject::Cloth* cloth;
-		
+		KObject::EulerCloth* cloth;
+
 		KCamera::Camera* camera;
 		KLight::Light* light;
 
 	public:
-		ClothRenderer() : Renderer(RES_PATH + "phong.vert",
+		EulerClothRenderer(): Renderer(RES_PATH + "phong.vert",
 			RES_PATH + "phong.frag", "ClothSimulation"),
+			back_shader(nullptr), cloth(nullptr),
 			floor(nullptr), sphere(nullptr),
 			camera(nullptr), light(nullptr) {
+			back_shader = new KShader::Shader();
+			back_shader->addShader(GL_VERTEX_SHADER, RES_PATH + "euler.vert");
 
 			floor = new KObject::Plane(80, 80, 40, 40);
 			floor->rotate(90, tvec3(-1, 0, 0));
@@ -35,9 +40,10 @@ namespace KRenderer {
 			sphere->translate(tvec3(0, 2, 0));
 
 			Kuint size = 30;
-			cloth = new KObject::Cloth(size);
+			cloth = new KObject::EulerCloth(size);
+			cloth->setPosition(tvec3(0.f, 2.f, 0.f));
 
-			camera = new KCamera::Camera(tvec3(0, size, size * 2));
+			camera = new KCamera::Camera(tvec3(0, 10, 15));
 			tvec2 wSize = window->getWindowSize();
 			camera->setPerspective(60.0f, wSize.x / wSize.y, 0.1f, 1000.0f);
 			camera->rotateView(18, tvec3(-1, 0, 0));
@@ -45,7 +51,7 @@ namespace KRenderer {
 			light = new KLight::Light(tvec3(0, size + 2, 0));
 			light->factor = size * 0.15;
 		}
-		~ClothRenderer()override {
+		~EulerClothRenderer()override {
 			delete floor;
 			delete sphere;
 			delete cloth;
@@ -58,6 +64,7 @@ namespace KRenderer {
 
 #ifdef IMGUI_ENABLE
 			Kboolean light_enable = true;
+			Kboolean sphere_enable = true;
 			Kfloat angle = 0.0;
 #endif // IMGUI_ENABLE
 
@@ -65,9 +72,15 @@ namespace KRenderer {
 			tvec2 last_mouse = mouse_pos;
 			Kfloat now_time = window->getRunTime();
 
+			back_shader->bind();
+			cloth->initBackBuffer(back_shader);
+			cloth->bindBackUniform(back_shader);
+
 			shader->bind();
 			camera->bindUniform(shader);
 			light->bindUniform(shader);
+
+			glCall(;)
 
 			//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
@@ -90,17 +103,9 @@ namespace KRenderer {
 				ImGui::Text("Your mouse pos is %.0f, %.0f", mouse_pos.x, mouse_pos.y);
 				ImGui::Text("Your last mouse pos is %.0f, %.0f", last_mouse.x, last_mouse.y);
 
-				cloth->drawGui();
-
-				//floor->drawImGui();
-				//floor->bindPosition(shader);
-				//floor->bindScale(shader);
-
-				//ImGui::DragFloat("angle", &angle, 0.1, 0, 360);
-				//camera->setRotation(angle, tvec3(0, 1, 0));
-				//camera->bindPosition(shader);
-
 				ImGui::Checkbox("light", &light_enable);
+				ImGui::SameLine(150);
+				ImGui::Checkbox("sphere", &sphere_enable);
 				if (light_enable) light->active(shader);
 				else light->unActive(shader);
 
@@ -117,19 +122,31 @@ namespace KRenderer {
 				}
 				last_mouse = mouse_pos;
 
-// 				cloth->bindUniform(shader);
-// 				//cloth->updatePosition(window->getRunTime() - now_time);
-// 				cloth->updatePosition(0.01f);
-// 				now_time = window->getRunTime();
-// 				cloth->render();
+				//now_time = window->getRunTime() - now_time;
+				//if (!KFunction::isZero(now_time)) {
+				//	back_shader->bind();
+				//	back_shader->bindUniform1f("delta_time", now_time);
+				//	cloth->renderBack();
+				//}
+				//now_time = window->getRunTime();
+
+				back_shader->bind();
+				back_shader->bindUniform1f("delta_time", 1.f / 60.f);
+				cloth->renderBack();
+
+				shader->bind();
+				cloth->bindUniform(shader);
+				cloth->render();
 
 				floor->bindUniform(shader);
 				floor->render();
 				floor->unActiveTexture(shader);
 
-				sphere->bindUniform(shader);
-				sphere->render();
-				sphere->unActiveTexture(shader);
+				if (sphere_enable) {
+					sphere->bindUniform(shader);
+					sphere->render();
+					sphere->unActiveTexture(shader);
+				}
 
 				window->update();
 			}
@@ -138,7 +155,7 @@ namespace KRenderer {
 		void resize(Kint w, Kint h)override {
 #ifdef IMGUI_ENABLE
 			Renderer::resize(w - 300, h);
-			if (w > 300 && h > 0) camera->setPerspective(60.0f, Kfloat(w - 300) / Kfloat(h), 0.1f, 1000.0f);
+			if(w > 300 && h > 0) camera->setPerspective(60.0f, Kfloat(w - 300) / Kfloat(h), 0.1f, 1000.0f);
 #else
 			Renderer::resize(w, h);
 			if (w > 0 && h > 0) camera->setPerspective(60.0f, Kfloat(w) / Kfloat(h), 0.1f, 1000.0f);
@@ -148,5 +165,5 @@ namespace KRenderer {
 	};
 }
 
-#endif // !CLOTH_RENDERER_H
+#endif // !EULER_CLOTH_RENDERER_H
 

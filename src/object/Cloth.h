@@ -20,10 +20,20 @@ namespace KObject {
 	private:
 		class Spring {
 		private:
-			static const Kfloat k;
+			static const Kfloat ks;
+			static const Kfloat kd;
 			const Cloth* const parent;
 			Kuint vertex_index[2];
 			Kfloat rest_length;
+
+			tvec3 getVelcityDirection(Kuint index)const {
+				if (!isValid()) return tvec3();
+				if (index == vertex_index[0]) return parent->points->at(vertex_index[0])->getVelocity()
+					- parent->points->at(vertex_index[1])->getVelocity();
+				else if (index == vertex_index[1]) return parent->points->at(vertex_index[1])->getVelocity()
+					- parent->points->at(vertex_index[0])->getVelocity();
+				return tvec3();
+			}
 
 		public:
 			Spring(Kuint one, Kuint other, Kfloat rest, const Cloth* parent) :
@@ -58,14 +68,11 @@ namespace KObject {
 				return tvec3();
 			}
 
-			Kfloat getK()const {
-				return k;
-			}
-
 			tvec3 getForce(Kuint index)const {
 				Kfloat delta_length = getCurrentLength() - rest_length;
 				if (delta_length <= 0.f) return tvec3(0.f);
-				return -k * delta_length * getDirection(index).normalize();
+				tvec3 dp(getDirection(index).normalize());
+				return -(ks * delta_length + kd * dp.dot(getVelcityDirection(index))) * dp;
 			}
 		};
 
@@ -85,9 +92,10 @@ namespace KObject {
 			static const tvec3 gravity;
 
 			void calAirForce() {
-				static const Kfloat a_resistance = -1.f;
+				//f_air = tvec3(0.f); return;
+				static const Kfloat a_resistance = -0.0125f;
 				if(!velocity.isZero()) f_air = (a_resistance * velocity.dot(velocity)) * KFunction::normalize(velocity);
-				else f_air = tvec3(0.f, 0.f, 0.f);
+				else f_air = tvec3(0.f);
 			}
 
 			void calAcceleration() {
@@ -118,7 +126,7 @@ namespace KObject {
 				this->is_constraint = is_constraint;
 			}
 
-			void updateMass(Kfloat mass = 1.0f) {
+			void updateMass(Kfloat mass = 0.02f) {
 				this->mass = mass;
 			}
 
@@ -183,7 +191,7 @@ namespace KObject {
 			Kfloat rest_length = 1.f;
 			Kfloat diag_length = sqrt(2) * rest_length;
 			Kfloat pertex = 1.f / size;
-			//Kfloat y = 10.f + size * rest_length;
+			//Kfloat y = 2.f + size * rest_length;
 			Kfloat y = size * rest_length / 2.f;
 			Kfloat ty = 0.f;
 			for (int i = 0; i < size; ++i, y -= rest_length, ty += pertex) {
@@ -198,25 +206,33 @@ namespace KObject {
 					Kuint index = points->size(); //i * size + j
 					auto p = new ClothPoint(index, this);
 					if (i > 0) {
-						if(j > 0) p->addSpring(
-							new Spring(index, index - size - 1, diag_length, this));
+						//if(j > 0) p->addSpring(
+						//	new Spring(index, index - size - 1, diag_length, this));
 						p->addSpring(
 							new Spring(index, index - size, rest_length, this));
-						if (j < size - 1) p->addSpring(
-							new Spring(index, index - size + 1, diag_length, this));
+						//if (j < size - 1) p->addSpring(
+						//	new Spring(index, index - size + 1, diag_length, this));
 					}
 					if (j > 0) p->addSpring(
 						new Spring(index, index - 1, rest_length, this));
 					if (j < size - 1) p->addSpring(
 						new Spring(index, index + 1, rest_length, this));
 					if (i < size - 1) {
-						if (j > 0) p->addSpring(
-							new Spring(index, index + size - 1, diag_length, this));
+						//if (j > 0) p->addSpring(
+						//	new Spring(index, index + size - 1, diag_length, this));
 						p->addSpring(
 							new Spring(index, index + size, rest_length, this));
-						if (j < size - 1) p->addSpring(
-							new Spring(index, index + size + 1, diag_length, this));
+						//if (j < size - 1) p->addSpring(
+						//	new Spring(index, index + size + 1, diag_length, this));
 					}
+					if (j > 1) p->addSpring(
+						new Spring(index, index - 2, rest_length * 2, this));
+					if (j < size - 2) p->addSpring(
+						new Spring(index, index + 2, rest_length * 2, this));
+					if (i > 1) p->addSpring(
+						new Spring(index, index - size * 2, rest_length * 2, this));
+					if (i < size - 2) p->addSpring(
+						new Spring(index, index + size * 2, rest_length * 2, this));
 					points->emplace_back(p);
 				}
 			}
@@ -260,19 +276,16 @@ namespace KObject {
 		void initArray() {
 			vao = new KBuffer::VertexArray();
 
-			vbo = new KBuffer::VertexBuffer(vertices->data(),
-				vertices->size() * sizeof(tvec3));
+			vbo = new KBuffer::VertexBuffer(vertices->size() * sizeof(tvec3), vertices->data());
 			vao->allocate(vbo, A_POSITION, 3, GL_FLOAT);
 
-			tbo = new KBuffer::VertexBuffer(texcoords->data(),
-				texcoords->size() * sizeof(tvec2));
+			tbo = new KBuffer::VertexBuffer(texcoords->size() * sizeof(tvec2), texcoords->data());
 			vao->allocate(tbo, A_TEXCOORD, 2, GL_FLOAT);
 
-			//nbo = new KBuffer::VertexBuffer(normals->data(),
-			//	normals->size() * sizeof(tvec3));
+			//nbo = new KBuffer::VertexBuffer(normals->size() * sizeof(tvec3), normals->data());
 			//vao->allocate(nbo, A_NORMAL, 3, GL_FLOAT);
 
-			ibo = new KBuffer::VertexBuffer(indices->data(), count * sizeof(Ksize), KBuffer::INDEX);
+			ibo = new KBuffer::VertexBuffer(count * sizeof(Ksize), indices->data(), KBuffer::INDEX);
 
 			delete texcoords; texcoords = nullptr;
 			delete indices; indices = nullptr;
@@ -293,7 +306,9 @@ namespace KObject {
 		}
 		~Cloth()override {
 			delete vertices;
+			delete last_vertices;
 			delete texcoords;
+			delete normals;
 			delete indices;
 			delete material;
 			if (points != nullptr) {
@@ -314,17 +329,26 @@ namespace KObject {
 			if (KFunction::isZero(delta_time)) return;
 			for (Ksize i = 0; i < size * size; ++i) {
 				last_vertices->at(i) = vertices->at(i);
+			}
+			for (Ksize i = 0; i < size * size; ++i) {
 				points->at(i)->updateMass();
 				vertices->at(i) += points->at(i)->getMovement(delta_time);
 				if (vertices->at(i).y < 0) vertices->at(i).y = 0.00072;
 			}
 			vbo->allocate(0, vertices->size() * sizeof(tvec3), vertices->data());
+			if (!isnan(vertices->at(size).y)) std::cout << vertices->at(size) << "\t"
+				<< points->at(size)->getVelocity() << "\t"
+				<< points->at(size)->getAcceleration() << "\n"
+				<< vertices->at(size + 1) << "\t"
+				<< points->at(size + 1)->getVelocity() << "\t"
+				<< points->at(size + 1)->getAcceleration() << "\n"
+				<< std::endl;
 		}
 
 		void render()const override {
 			bind();
 
-			//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 #ifdef PRIMITIVE
 			glEnable(GL_PRIMITIVE_RESTART);
 			glPrimitiveRestartIndex(0XFFFFFFFF);
@@ -340,24 +364,25 @@ namespace KObject {
 
 #ifdef IMGUI_ENABLE
 		void drawGui() {
-			Kuint index = 1;
+			Kuint index = size;
 			tvec3 t = points->at(index)->getVelocity();
 			ImGui::Text("Vel of p%d: %.2f, %.2f, %.2f", index, t.x, t.y, t.z);
-			index = size - 2;
+			index = size * 2 - 1;
 			t = points->at(index)->getVelocity();
 			ImGui::Text("Vel of p%d: %.2f, %.2f, %.2f", index, t.x, t.y, t.z);
 
-			index = 1;
+			index = size;
 			t = points->at(index)->getAcceleration();
 			ImGui::Text("Acc of p%d: %.2f, %.2f, %.2f", index, t.x, t.y, t.z);
-			index = size - 2;
+			index = size * 2 - 1;
 			t = points->at(index)->getAcceleration();
 			ImGui::Text("Acc of p%d: %.2f, %.2f, %.2f", index, t.x, t.y, t.z);
 		}
 #endif
 	};
 
-	const Kfloat Cloth::Spring::k = 50.f;
+	const Kfloat Cloth::Spring::ks = 15.f;
+	const Kfloat Cloth::Spring::kd = 0.9f;
 	const tvec3 Cloth::ClothPoint::gravity(0.0f, -9.8f, 0.0f);
 	const tvec3 Cloth::ClothPoint::f_wind(0.0f, 0.0f, 0.0f);
 }

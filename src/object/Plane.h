@@ -3,7 +3,7 @@
 //
 
 #ifndef PLANE_H
-#define KENGINE_PLANE_H
+#define PLANE_H
 
 #include <vector>
 #include "../Header.h"
@@ -55,18 +55,16 @@ namespace KObject {
 		void initArray() {
 			vao = new KBuffer::VertexArray();
 
-			vbo = new KBuffer::VertexBuffer(vertices->data(),
-				sizeof(tvec2) * vertices->size());
+			vbo = new KBuffer::VertexBuffer(sizeof(tvec2) * vertices->size(), vertices->data());
 			vao->allocate(vbo, A_POSITION, 2, GL_FLOAT);
 
-			tbo = new KBuffer::VertexBuffer(tex_coords->data(),
-				sizeof(tvec2) * tex_coords->size());
+			tbo = new KBuffer::VertexBuffer(sizeof(tvec2) * tex_coords->size(), tex_coords->data());
 			vao->allocate(tbo, A_TEXCOORD, 2, GL_FLOAT);
 
 			vao->setVertexAttrib3f(A_NORMAL, tvec3(0.0f, 0.0f, 1.0f));
 
-			ibo = new KBuffer::VertexBuffer(indices->data(),
-				sizeof(Face<Kuint>) * indices->size(), KBuffer::BufferType::INDEX);
+			ibo = new KBuffer::VertexBuffer(sizeof(Face<Kuint>) * indices->size(),
+				indices->data(), KBuffer::BufferType::INDEX);
 
 			delete vertices; vertices = nullptr;
 			delete tex_coords; tex_coords = nullptr;

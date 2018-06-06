@@ -76,15 +76,16 @@ namespace KObject {
 		void initArray() {
 			vao = new KBuffer::VertexArray();
 
-			vbo = new KBuffer::VertexBuffer(vertices->data(), vertices->size() * sizeof(tvec3));
+			vbo = new KBuffer::VertexBuffer(vertices->size() * sizeof(tvec3), vertices->data());
 			vao->allocate(vbo, A_POSITION, 3, GL_FLOAT);
 
-			tbo = new KBuffer::VertexBuffer(texcoords->data(), texcoords->size() * sizeof(tvec2));
+			tbo = new KBuffer::VertexBuffer(texcoords->size() * sizeof(tvec2), texcoords->data());
 			vao->allocate(tbo, A_TEXCOORD, 2, GL_FLOAT);
 
 			vao->allocate(vbo, A_NORMAL, 3, GL_FLOAT);
 
-			ibo = new KBuffer::VertexBuffer(indices->data(), indices->size() * sizeof(Kushort), KBuffer::INDEX);
+			ibo = new KBuffer::VertexBuffer(indices->size() * sizeof(Kushort),
+				indices->data(), KBuffer::INDEX);
 
 			delete vertices; vertices = nullptr;
 			delete texcoords; texcoords = nullptr;

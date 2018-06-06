@@ -5,6 +5,7 @@
 #ifndef BACK_BUFFER_H
 #define BACK_BUFFER_H
 
+#include <vector>
 #include "../Header.h"
 #include "./Shader.h"
 
@@ -16,137 +17,137 @@ namespace KBuffer {
 
 	class BackBuffer{
 	private:
-		Kuint program;
-		Kuint bufferSize;
-		std::vector<Kuint> buffers;
+		std::vector<Kuint> buffers_size;
+		Kuint* buffers;
+		Kuint n_buffers;
 
 	public:
-		BackBuffer(const KShader::Shader* shader, const std::vector<std::string>& varyings,
-			Kuint bufferSize) : program(shader->program), bufferSize(bufferSize) {
-			Kuint size = varyings.size();
-			const auto names = new const char*[size];
-			for (int i = 0; i < size; ++i) {
-				names[i] = varyings[i].data();
-			}
-			glTransformFeedbackVaryings(program, size, names, GL_INTERLEAVED_ATTRIBS);
-			glLinkProgram(program);
+		BackBuffer(const KShader::Shader* shader, const std::vector<const char*>& varyings,
+			const std::vector<Kuint>& buffers_size, GLenum mode = GL_INTERLEAVED_ATTRIBS):
+			buffers_size(buffers_size), buffers(nullptr) {
+			glTransformFeedbackVaryings(shader->program, varyings.size(), varyings.data(), mode);
+			glLinkProgram(shader->program);
 
-			Kuint tfbo;
-			glGenBuffers(1, &tfbo);
-			glBindBuffer(GL_TRANSFORM_FEEDBACK_BUFFER, tfbo);
-			glBufferData(GL_TRANSFORM_FEEDBACK_BUFFER, bufferSize, nullptr, GL_STATIC_DRAW);
-			buffers.emplace_back(tfbo);
-		}
-
-		BackBuffer(const KShader::Shader* shader, const std::vector<std::string>& varyings,
-			const std::vector<Kuint>& buffers, GLenum bufferMode)
-			: program(shader->program), buffers(buffers), bufferSize(0) {
-			Kuint size = varyings.size();
-			const auto names = new const char*[size];
-			for (int i = 0; i < size; ++i) {
-				names[i] = varyings[i].data();
-			}
-			glTransformFeedbackVaryings(program, size, names, bufferMode);
-			glLinkProgram(program);
-		}
-
-		void bind() {
-			int index = 0;
-			for (auto &it : buffers) {
-				glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, index++, it);
+			n_buffers = buffers_size.size();
+			if (n_buffers == 0) return;
+			//note: remember that you are not necessary to create following buffers
+			//because you can use bindBuffer() function to bind other buffer to index.
+			buffers = new Kuint[n_buffers];
+			glGenBuffers(n_buffers, buffers);
+			for (int i = 0; i < n_buffers; ++i) {
+				glBindBuffer(GL_TRANSFORM_FEEDBACK_BUFFER, buffers[i]);
+				glBufferData(GL_TRANSFORM_FEEDBACK_BUFFER, buffers_size[i], nullptr, GL_STATIC_DRAW);
+				glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, i, buffers[i]);
 			}
 		}
+		~BackBuffer() {
+			if (buffers != nullptr) glDeleteBuffers(n_buffers, buffers);
+		}
 
-		void enable(GLenum type) {
+		void bindBuffer(Kuint index, Kuint buffer)const {
+			if (index >= n_buffers || !glIsBuffer(buffer)) return;
+			glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, index, buffer);
+		}
+
+		void enable(GLenum type = GL_POINTS)const {
 			//Be sure not to discard somthing form your fragment or some other shader
 			//or you will get a crash
 			glBeginTransformFeedback(type);
 		}
 
-		void disable() {
+		void disable()const {
 			glEndTransformFeedback();
 		}
 
+		void copyDataToBuffer(Kuint index, Kuint buffer, GLenum type)const {
+			if (index >= n_buffers) return;
+			glBindBuffer(GL_TRANSFORM_FEEDBACK_BUFFER, buffers[index]);
+			glBindBuffer(type, buffer);
+			glCopyBufferSubData(GL_TRANSFORM_FEEDBACK_BUFFER, type, 0, 0, buffers_size[index]);
+		}
+
 		template <typename T>
-		const T* getData() {
+		const T* getData(Kuint index = 0)const {
 			static_assert(false, "BlockBuffer::getData<T> is just for some type");
 			//compile error
 		}
 
 		template<>
-		const Kfloat* getData<Kfloat>() {
-			if (bufferSize == 0) {
+		const Kfloat* getData<Kfloat>(Kuint index)const {
+			if (index >= n_buffers) return nullptr;
+			if (buffers_size[index] == 0) {
 				std::cerr << "Cannot manage buffer size!" << std::endl;
 				return nullptr;
 			}
-			glBindBuffer(GL_TRANSFORM_FEEDBACK_BUFFER, buffers[0]);
-			auto data = new float[bufferSize / sizeof(Kfloat)];
-			glGetBufferSubData(GL_TRANSFORM_FEEDBACK_BUFFER, 0, bufferSize, data);
+			glBindBuffer(GL_TRANSFORM_FEEDBACK_BUFFER, buffers[index]);
+			auto data = new float[buffers_size[index] / sizeof(Kfloat)];
+			glGetBufferSubData(GL_TRANSFORM_FEEDBACK_BUFFER, index, buffers_size[index], data);
 			return data;
 		}
 
 		template<>
-		const KVector::Vec2* getData<KVector::Vec2>() {
-			if (bufferSize == 0) {
+		const KVector::Vec2* getData<KVector::Vec2>(Kuint index)const {
+			if (buffers_size[index] == 0) {
 				std::cerr << "Cannot manage buffer size!" << std::endl;
 				return nullptr;
 			}
-			glBindBuffer(GL_TRANSFORM_FEEDBACK_BUFFER, buffers[0]);
-			auto data = new KVector::Vec2[bufferSize / sizeof(KVector::Vec2)];
-			glGetBufferSubData(GL_TRANSFORM_FEEDBACK_BUFFER, 0, bufferSize, data);
+			glBindBuffer(GL_TRANSFORM_FEEDBACK_BUFFER, buffers[index]);
+			auto data = new KVector::Vec2[buffers_size[index] / sizeof(KVector::Vec2)];
+			glGetBufferSubData(GL_TRANSFORM_FEEDBACK_BUFFER, index, buffers_size[index], data);
 			return data;
 		}
 
 		template<>
-		const KVector::Vec3* getData<KVector::Vec3>() {
-			if (bufferSize == 0) {
+		const KVector::Vec3* getData<KVector::Vec3>(Kuint index)const {
+			if (buffers_size[index] == 0) {
 				std::cerr << "Cannot manage buffer size!" << std::endl;
 				return nullptr;
 			}
-			glBindBuffer(GL_TRANSFORM_FEEDBACK_BUFFER, buffers[0]);
-			auto data = new KVector::Vec3[bufferSize / sizeof(KVector::Vec3)];
-			glGetBufferSubData(GL_TRANSFORM_FEEDBACK_BUFFER, 0, bufferSize, data);
+			glBindBuffer(GL_TRANSFORM_FEEDBACK_BUFFER, buffers[index]);
+			auto data = new KVector::Vec3[buffers_size[index] / sizeof(KVector::Vec3)];
+			glGetBufferSubData(GL_TRANSFORM_FEEDBACK_BUFFER, index, buffers_size[index], data);
 			return data;
 		}
 
 		template<>
-		const KVector::Vec4* getData<KVector::Vec4>() {
-			if (bufferSize == 0) {
+		const KVector::Vec4* getData<KVector::Vec4>(Kuint index)const {
+			if (buffers_size[index] == 0) {
 				std::cerr << "Cannot manage buffer size!" << std::endl;
 				return nullptr;
 			}
-			glBindBuffer(GL_TRANSFORM_FEEDBACK_BUFFER, buffers[0]);
-			auto data = new KVector::Vec4[bufferSize / sizeof(KVector::Vec4)];
-			glGetBufferSubData(GL_TRANSFORM_FEEDBACK_BUFFER, 0, bufferSize, data);
+			glBindBuffer(GL_TRANSFORM_FEEDBACK_BUFFER, buffers[index]);
+			auto data = new KVector::Vec4[buffers_size[index] / sizeof(KVector::Vec4)];
+			glGetBufferSubData(GL_TRANSFORM_FEEDBACK_BUFFER, index, buffers_size[index], data);
 			return data;
 		}
 
 		template<>
-		const KMatrix::Mat3* getData<KMatrix::Mat3>() {
-			if (bufferSize == 0) {
+		const KMatrix::Mat3* getData<KMatrix::Mat3>(Kuint index)const {
+			if (buffers_size[index] == 0) {
 				std::cerr << "Cannot manage buffer size!" << std::endl;
 				return nullptr;
 			}
-			glBindBuffer(GL_TRANSFORM_FEEDBACK_BUFFER, buffers[0]);
-			auto data = new KMatrix::Mat3[bufferSize / sizeof(KMatrix::Mat3)];
-			glGetBufferSubData(GL_TRANSFORM_FEEDBACK_BUFFER, 0, bufferSize, data);
+			glBindBuffer(GL_TRANSFORM_FEEDBACK_BUFFER, buffers[index]);
+			auto data = new KMatrix::Mat3[buffers_size[index] / sizeof(KMatrix::Mat3)];
+			glGetBufferSubData(GL_TRANSFORM_FEEDBACK_BUFFER, index, buffers_size[index], data);
 			return data;
 		}
 
 		template<>
-		const KMatrix::Mat4* getData<KMatrix::Mat4>() {
-			if (bufferSize == 0) {
+		const KMatrix::Mat4* getData<KMatrix::Mat4>(Kuint index)const {
+			if (buffers_size[index] == 0) {
 				std::cerr << "Cannot manage buffer size!" << std::endl;
 				return nullptr;
 			}
-			glBindBuffer(GL_TRANSFORM_FEEDBACK_BUFFER, buffers[0]);
-			auto data = new KMatrix::Mat4[bufferSize / sizeof(KMatrix::Mat4)];
-			glGetBufferSubData(GL_TRANSFORM_FEEDBACK_BUFFER, 0, bufferSize, data);
+			glBindBuffer(GL_TRANSFORM_FEEDBACK_BUFFER, buffers[index]);
+			auto data = new KMatrix::Mat4[buffers_size[index] / sizeof(KMatrix::Mat4)];
+			glGetBufferSubData(GL_TRANSFORM_FEEDBACK_BUFFER, index, buffers_size[index], data);
 			return data;
 		}
 
-		const Kuint getBufferSize()const {
-			return bufferSize;
+		const Kuint getBufferSize(Kuint index = 0)const {
+			if (index >= n_buffers) return 0;
+			return buffers_size[index];
 		}
 	};
 }

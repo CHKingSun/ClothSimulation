@@ -34,6 +34,10 @@ using Kshort = short;
 using Kushort = unsigned short;
 using Kboolean = bool;
 using Ksize = unsigned int;
+using Kchar = char;
+using Kuchar = unsigned char;
+using Kbyte = char;
+using Kubyte = unsigned char;
 
 //Some definition
 #define EPSILON_E6 1E-6

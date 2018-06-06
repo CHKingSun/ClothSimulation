@@ -8,6 +8,7 @@
 #include <unordered_set>
 #include <GL/glew.h>
 #include "../Header.h"
+#include "./BackBuffer.h"
 
 namespace KBuffer {
 	enum BufferType {
@@ -20,28 +21,30 @@ namespace KBuffer {
 		GLenum type;
 
 	public:
-		VertexBuffer(Kuint size, BufferType bufferType = VERTEX) {
-			if (bufferType == VERTEX) this->type = GL_ARRAY_BUFFER;
-			else this->type = GL_ELEMENT_ARRAY_BUFFER;
-			glGenBuffers(1, &id);
-			glBindBuffer(this->type, id);
-			glBufferData(this->type, size, nullptr, GL_STATIC_DRAW);
-		}
-		VertexBuffer(const void *data, Kuint size, BufferType bufferType = VERTEX) {
+		VertexBuffer(Kuint size, const void *data = nullptr, BufferType bufferType = VERTEX) {
 			if (bufferType == VERTEX) this->type = GL_ARRAY_BUFFER;
 			else this->type = GL_ELEMENT_ARRAY_BUFFER;
 			glGenBuffers(1, &id);
 			glBindBuffer(this->type, id);
 			glBufferData(this->type, size, data, GL_STATIC_DRAW);
 		}
-
 		~VertexBuffer() {
 			if (glIsBuffer(id)) glDeleteBuffers(1, &id);
 		}
 
-		void allocate(Kuint offset, Kuint size, const void* data) {
+		void allocate(Kuint offset, Kuint size, const void* data)const {
 			glBindBuffer(type, id);
 			glBufferSubData(type, offset, size, data);
+		}
+
+		void bindToBackBuffer(Kuint index, const BackBuffer* back)const {
+			if (back == nullptr) return;
+			back->bindBuffer(index, id);
+		}
+
+		void copyDataFormBuffer(Kuint index, const BackBuffer* back)const {
+			if (back == nullptr) return;
+			back->copyDataToBuffer(index, id, type);
 		}
 
 		void bind()const {
@@ -50,6 +53,10 @@ namespace KBuffer {
 
 		void unBind()const {
 			glBindBuffer(type, 0);
+		}
+
+		GLenum getType()const {
+			return type;
 		}
 	};
 }
