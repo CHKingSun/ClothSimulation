@@ -109,7 +109,7 @@ namespace KMaterial {
 			if (glIsTexture(tex_id)) {
 				glActiveTexture(GL_TEXTURE0);
 				glBindTexture(GL_TEXTURE_2D, tex_id);
-				shader->bindUniform1i(TEXTURE, GL_TEXTURE0);
+				shader->bindUniform1i(TEXTURE, 0);
 				shader->bindUniform1i(TEX_ENABLE, true);
 			}
 		}

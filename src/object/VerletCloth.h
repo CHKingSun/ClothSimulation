@@ -2,8 +2,8 @@
 // Created by KingSun on 2018/06/06
 //
 
-#ifndef EULER_CLOTH_H
-#define EULER_CLOTH_H
+#ifndef VERLET_CLOTH_H
+#define VERLET_CLOTH_H
 
 #include "../math/Vec4.h"
 #include "./Object3D.h"
@@ -16,27 +16,32 @@ namespace KObject {
 	using tvec3 = KVector::Vec3;
 	using tvec4 = KVector::Vec4;
 
-	//Use GPU and Euler mathod
-	class EulerCloth : public Object3D {
+	//Use GPU and Verlet mathod
+	class VerletCloth : public Object3D {
 	private:
-		Ksize size;
+		tvec2 length = tvec2(9.6f);
+		Ksize size_x, size_y;
 		Ksize count;
 
-		const Kfloat mass = 0.05f;
 		const Kfloat a_resistance = -0.0125f;
-		const tvec3 f_wind = tvec3(0.f);
-		
-		const Kfloat ks = 20.f;
-		const Kfloat kd = 0.96f;
+		const tvec3 f_wind = tvec3(0.1f, 0.f, -0.02f);
 
-		const Kfloat length = 9.6f;
-		Kfloat rest_length; //length / size
-		Kfloat diag_length; //rest_length * sqrt(2)
+		const Kfloat mass = 0.1f;
+		const Kfloat ks = 100.f;
+		const Kfloat kd = 0.48f;
+		const Kfloat ks_bend = 3.6f;
+		const Kfloat kd_bend = 0.48f;
+
+		const Kfloat delta_time = 1.f / 60.f;
+		const Kfloat last_dt = 1.f / 60.f;
+
+		tvec2 rest_length = tvec2(1.f); //length / size
+		Kfloat diag_length = rest_length.length(); //rest_length.length()
 
 		KBuffer::BackBuffer* back_buffer;
 		KBuffer::TextureBuffer* constraints_sampler;
 		KBuffer::TextureBuffer* vertices_sampler;
-		KBuffer::TextureBuffer* velocities_sampler;
+		KBuffer::TextureBuffer* last_vertices_sampler;
 
 		std::vector<tvec3>* vertices; //It will be deleted in CLoth class
 		std::vector<tvec2>* texcoords;
@@ -47,80 +52,65 @@ namespace KObject {
 
 		void generate() {
 			vertices = new std::vector<tvec3>();
-			vertices->reserve(size * size);
+			vertices->reserve(size_x * size_y);
 			texcoords = new std::vector<tvec2>();
-			texcoords->reserve(size * size);
+			texcoords->reserve(size_x * size_y);
 			//normals = new std::vector<tvec3>();
-			//normals->reserve(size * size);
+			//normals->reserve(size_x * size_y);
 
-			rest_length = length / size;
-			diag_length = rest_length * sqrt(2);
-			Kfloat pertex = 1.f / size;
-			//Kfloat y = length;
-			Kfloat y = length / 2.f;
+			rest_length = length / tvec2(size_x - 1, size_y - 1);
+			diag_length = rest_length.length();
+
+			Kfloat pertex_x = 1.f / (size_x - 1);
+			Kfloat pertex_y = 1.f / (size_y - 1);
+			//Kfloat y = length.y;
+			Kfloat y = length.y / 2.f;
 			Kfloat ty = 0.f;
-			for (int i = 0; i < size; ++i, y -= rest_length, ty += pertex) {
-				Kfloat x = -length / 2.f;
+			for (int i = 0; i < size_y; ++i, y -= rest_length.y, ty += pertex_y) {
+				Kfloat x = length.x / -2.f;
 				Kfloat tx = 0.f;
-				for (int j = 0; j < size; ++j, x += rest_length, tx += pertex) {
+				for (int j = 0; j < size_x; ++j, x += rest_length.x, tx += pertex_x) {
 					//vertices->emplace_back(x, y, 0.f);
-					vertices->emplace_back(x, length, y);
+					vertices->emplace_back(x, length.y, y);
 					texcoords->emplace_back(tx, ty);
 				}
 			}
-			
+
+			//m_scale = tvec3(length.x / (size_x - 1), length.y / (size_y - 1), 1.f);
+			//m_scale = tvec3(length.x / (size_x - 1), 1.f, length.y / (size_y - 1));
+
 			vertices_sampler = new KBuffer::TextureBuffer(vertices->size() * sizeof(tvec3),
 				vertices->data());
-			velocities_sampler = new KBuffer::TextureBuffer(vertices->size() * sizeof(tvec3));
+			last_vertices_sampler = new KBuffer::TextureBuffer(vertices->size() * sizeof(tvec3),
+				vertices->data());
 
-			auto constraints = new Kubyte[size * size];
-			memset(constraints, 0, size * size * sizeof(Kubyte));
-			for (int i = 0; i < size; ++i) {
+			auto constraints = new Kubyte[size_x * size_y];
+			memset(constraints, 0, size_x * size_y * sizeof(Kubyte));
+			for (int i = 0; i < size_x; ++i) {
 				constraints[i] = true;
 			}
 			constraints[0] = true;
-			constraints[size - 1] = true;
-			constraints_sampler = new KBuffer::TextureBuffer(size * size * sizeof(Kubyte), constraints, GL_RGBA8UI);
+			constraints[size_x - 1] = true;
+			constraints_sampler = new KBuffer::TextureBuffer(size_x * size_y * sizeof(Kubyte), constraints, GL_RGBA8UI);
 			delete constraints;
 
 			indices = new std::vector<Kuint>();
-#define PRIMITIVE
-#ifdef PRIMITIVE
-			count = (size - 1) * (size * 2 + 1) - 1;
+			count = (size_y - 1) * (size_x * 2 + 1) - 1;
 			indices->reserve(count + 1);
 			Kuint index = 0;
-			for (int i = 0; i < size - 1; ++i) {
-				indices->emplace_back(index);
-				for (int j = 0; j < size - 1; ++j) {
-					indices->emplace_back(index + size);
-					indices->emplace_back(++index);
+			for (int i = 0; i < size_y - 1; ++i) {
+				for (int j = 0; j < size_x; ++j, ++index) {
+					indices->emplace_back(index);
+					indices->emplace_back(index + size_x);
 				}
-				indices->emplace_back(index + size);
-				++index;
 				indices->emplace_back(0XFFFFFFFF);
 			}
-#else
-			//It will create other triangles.
-			count = (2 * (size - 1) + 1) * (size - 1) + 1;
-			indices->reserve(count);
-			Kuint index = 0;
-			Kint tmp = 1;
-			indices->emplace_back(index);
-			for (Kuint i = 0; i < size - 1; ++i) {
-				for (int j = 0; j < size - 1; ++j) {
-					indices->emplace_back(index + size);
-					indices->emplace_back(index += tmp);
-				}
-				indices->emplace_back(index += size);
-				tmp = -tmp;
-			}
-#endif
 		}
 
 		void initArray() {
 			vao = new KBuffer::VertexArray();
 
-			vbo = new KBuffer::VertexBuffer(vertices->size() * sizeof(tvec3));
+			vbo = new KBuffer::VertexBuffer(vertices->size() * sizeof(tvec3), vertices->data());
 			//we will add data by transform feed back
 			vao->allocate(vbo, A_POSITION, 3, GL_FLOAT, false, sizeof(tvec3));
 
@@ -137,21 +127,23 @@ namespace KObject {
 		}
 
 	public:
-		EulerCloth(Ksize size = 30): Object3D("Cloth"), size(size),
+		VerletCloth(Ksize xslices = 30, Kfloat yslices = 20):
+			Object3D("Cloth"), size_x(xslices + 1), size_y(yslices + 1),
 			back_buffer(nullptr), vertices_sampler(nullptr),
-			constraints_sampler(nullptr), velocities_sampler(nullptr),
+			constraints_sampler(nullptr), last_vertices_sampler(nullptr),
 			vertices(nullptr), texcoords(nullptr), normals(nullptr),
 			indices(nullptr), material(nullptr) {
 			material = new KMaterial::Material();
-			material->ambient = tvec4(0.f, 0.67f, 0.56f, 1.f);
-			material->diffuse = tvec4(0.41f, 0.69f, 0.67f, 1.f);
-			material->specular = tvec4(0.40f, 0.73f, 0.72f, 1.f);
+			//material->ambient = tvec4(0.f, 0.67f, 0.56f, 1.f);
+			//material->diffuse = tvec4(0.41f, 0.69f, 0.67f, 1.f);
+			//material->specular = tvec4(0.40f, 0.73f, 0.72f, 1.f);
 			material->shininess = 3.0;
+			material->setTexture(RES_PATH + "earth.jpg");
 
 			generate();
 			initArray();
 		}
-		~EulerCloth()override {
+		~VerletCloth()override {
 			delete vertices;
 			delete texcoords;
 			delete indices;
@@ -161,7 +153,7 @@ namespace KObject {
 			delete back_buffer;
 			delete constraints_sampler;
 			delete vertices_sampler;
-			delete velocities_sampler;
+			delete last_vertices_sampler;
 		}
 
 		void bindUniform(const KShader::Shader* shader)const override {
@@ -172,37 +164,38 @@ namespace KObject {
 		void initBackBuffer(const KShader::Shader* back_shader) {
 			back_buffer = new KBuffer::BackBuffer(back_shader,
 			{
-				"o_vertex",
-				"o_velocity"
+				"o_last_vertex",
+				"o_vertex"
 			},
 			{
-				size * size * sizeof(tvec3),
-				size * size * sizeof(tvec3)
+				size_x * size_y * sizeof(tvec3),
+				size_x * size_y * sizeof(tvec3)
 			},
 			GL_SEPARATE_ATTRIBS);
-
-			//vbo->bindToBackBuffer(0, back_buffer);
-			//vertices_sampler->bindToBackBuffer(0, back_buffer);
-			//velocities_sampler->bindToBackBuffer(1, back_buffer);
 		}
 
 		void bindBackUniform(const KShader::Shader* back_shader)const {
-			back_shader->bindUniform1i("size", size);
+			back_shader->bindUniform2i("size", size_x, size_y);
+			back_shader->bindUniform2f("rest_length", rest_length);
+			back_shader->bindUniform1f("diag_length", diag_length);
 
 			back_shader->bindUniform1f("mass", mass);
 			back_shader->bindUniform1f("a_resistance", a_resistance);
 			back_shader->bindUniform3f("f_wind", f_wind);
-			
+
+			back_shader->bindUniform1f("last_dt", last_dt);
+			back_shader->bindUniform1f("delta_time", delta_time);
+
 			back_shader->bindUniform1f("ks", ks);
 			back_shader->bindUniform1f("kd", kd);
-			back_shader->bindUniform1f("rest_length", rest_length);
-			//back_shader->bindUniform1f("diag_length", diag_length);
+			back_shader->bindUniform1f("ks_bend", ks_bend);
+			back_shader->bindUniform1f("kd_bend", kd_bend);
 
 			back_shader->bindUniform3f("u_position", position);
 
 			constraints_sampler->bind(back_shader, "constraints_tbo", 0);
-			vertices_sampler->bind(back_shader, "vertices_tbo", 1);
-			velocities_sampler->bind(back_shader, "velocities_tbo", 2);
+			last_vertices_sampler->bind(back_shader, "last_vertices_tbo", 1);
+			vertices_sampler->bind(back_shader, "vertices_tbo", 2);
 		}
 
 		void renderBack()const {
@@ -210,15 +203,16 @@ namespace KObject {
 			glEnable(GL_RASTERIZER_DISCARD);
 			back_buffer->enable();
 
-			glDrawArrays(GL_POINTS, 0, size * size);
+			glDrawArrays(GL_POINTS, 0, size_x * size_y);
 
 			back_buffer->disable();
 			glDisable(GL_RASTERIZER_DISCARD);
 
-			vbo->copyDataFormBuffer(0, back_buffer);
-			vertices_sampler->copyDataFromBuffer(0, back_buffer);
-			velocities_sampler->copyDataFromBuffer(1, back_buffer);
 
+			last_vertices_sampler->copyDataFromBuffer(0, back_buffer);
+			vbo->copyDataFormBuffer(1, back_buffer);
+			vertices_sampler->copyDataFromBuffer(1, back_buffer);
+			
 			//const tvec3* data0 = back_buffer->getData<tvec3>(0);
 			//const tvec3* data1 = back_buffer->getData<tvec3>(1);
 		}
@@ -226,21 +220,17 @@ namespace KObject {
 		void render()const override {
 			bind();
 
-			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-#ifdef PRIMITIVE
+			//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 			glEnable(GL_PRIMITIVE_RESTART);
 			glPrimitiveRestartIndex(0XFFFFFFFF);
 			glDrawElements(GL_TRIANGLE_STRIP, count, GL_UNSIGNED_INT, nullptr);
 			glDisable(GL_PRIMITIVE_RESTART);
-#else
-			glDrawElements(GL_TRIANGLE_STRIP, count, GL_UNSIGNED_INT, nullptr);
-#endif
-			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+			//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 			unBind();
 		}
 	};
 }
 
-#endif // !EULER_CLOTH_H
+#endif // !VERLET_CLOTH_H
 

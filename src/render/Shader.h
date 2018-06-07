@@ -233,6 +233,11 @@ namespace KShader{
             glUniform1i(getLocation(name), value);
 		}
 
+		void bindUniform2i(const std::string &name, Kint i1, Kint i2)const {
+			if (!isValid()) return;
+			glUniform2i(getLocation(name), i1, i2);
+		}
+
 		void bindUniform2f(const std::string &name, const tvec2& v)const {
 			if (!isValid()) return;
 			glUniform2fv(getLocation(name), 1, v.data());

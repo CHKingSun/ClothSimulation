@@ -59,6 +59,8 @@
     <ClInclude Include="src\render\TextureBuffer.h" />
     <ClInclude Include="src\object\EulerCloth.h" />
     <ClInclude Include="src\render\EulerClothRenderer.h" />
+    <ClInclude Include="src\object\VerletCloth.h" />
+    <ClInclude Include="src\render\VerletClothRenderer.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">

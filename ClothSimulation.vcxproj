@@ -41,12 +41,14 @@
     <ClInclude Include="src\object\Object3D.h" />
     <ClInclude Include="src\object\Plane.h" />
     <ClInclude Include="src\object\Sphere.h" />
+    <ClInclude Include="src\object\VerletCloth.h" />
     <ClInclude Include="src\render\ClothRenderer.h" />
     <ClInclude Include="src\render\EulerClothRenderer.h" />
     <ClInclude Include="src\render\Renderer.h" />
     <ClInclude Include="src\render\BackBuffer.h" />
     <ClInclude Include="src\render\Shader.h" />
     <ClInclude Include="src\render\TextureBuffer.h" />
+    <ClInclude Include="src\render\VerletClothRenderer.h" />
     <ClInclude Include="src\render\VertexArray.h" />
     <ClInclude Include="src\render\VertexBuffer.h" />
     <ClInclude Include="src\util\Camera.h" />

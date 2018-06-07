@@ -6,9 +6,10 @@
 #include "./render/BackBuffer.h"
 #include "./render/ClothRenderer.h"
 #include "./render/EulerClothRenderer.h"
+#include "./render/VerletClothRenderer.h"
 
 int main() {
-	auto renderer = new KRenderer::EulerClothRenderer();
+	auto renderer = new KRenderer::VerletClothRenderer();
 
 	renderer->exec();
 

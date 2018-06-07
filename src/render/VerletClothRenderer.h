@@ -1,37 +1,37 @@
 //
-// Created by KingSun on 2018/06/06
+// Created by KingSun on 2018/06/07
 //
 
-#ifndef EULER_CLOTH_RENDERER_H
-#define EULER_CLOTH_RENDERER_H
+#ifndef VERLET_CLOTH_RENDERER_H
+#define VERLET_CLOTH_RENDERER_H
 
 #include "./Renderer.h"
 #include "../util/Camera.h"
 #include "../util/Light.h"
 #include "../object/Plane.h"
 #include "../object/Sphere.h"
-#include "../object/EulerCloth.h"
+#include "../object/VerletCloth.h"
 
 namespace KRenderer {
-	class EulerClothRenderer : public Renderer {
+	class VerletClothRenderer : public Renderer {
 	private:
 		KShader::Shader* back_shader;
 
 		KObject::Plane* floor;
 		KObject::Sphere* sphere;
-		KObject::EulerCloth* cloth;
+		KObject::VerletCloth* cloth;
 
 		KCamera::Camera* camera;
 		KLight::Light* light;
 
 	public:
-		EulerClothRenderer(): Renderer(RES_PATH + "phong.vert",
+		VerletClothRenderer(): Renderer(RES_PATH + "phong.vert",
 			RES_PATH + "phong.frag", "ClothSimulation"),
 			back_shader(nullptr), cloth(nullptr),
 			floor(nullptr), sphere(nullptr),
 			camera(nullptr), light(nullptr) {
 			back_shader = new KShader::Shader();
-			back_shader->addShader(GL_VERTEX_SHADER, RES_PATH + "euler.vert");
+			back_shader->addShader(GL_VERTEX_SHADER, RES_PATH + "verlet.vert");
 
 			floor = new KObject::Plane(80, 80, 40, 40);
 			floor->rotate(90, tvec3(-1, 0, 0));
@@ -39,19 +39,19 @@ namespace KRenderer {
 			sphere = new KObject::Sphere(3, 30, 30);
 			sphere->translate(tvec3(0, 2, 0));
 
-			Kuint size = 30;
-			cloth = new KObject::EulerCloth(size);
-			cloth->setPosition(tvec3(0.f, 2.f, 0.f));
+			Kuint size_x = 20, size_y = 20;
+			cloth = new KObject::VerletCloth(size_x, size_y);
+			cloth->setPosition(tvec3(0.f, 3.f, 0.f));
 
-			camera = new KCamera::Camera(tvec3(0, 10, 15));
+			camera = new KCamera::Camera(tvec3(0, 12, 15));
 			tvec2 wSize = window->getWindowSize();
 			camera->setPerspective(60.0f, wSize.x / wSize.y, 0.1f, 1000.0f);
-			camera->rotateView(18, tvec3(-1, 0, 0));
+			camera->rotateView(24, tvec3(-1, 0, 0));
 
-			light = new KLight::Light(tvec3(0, size + 2, 0));
-			light->factor = size * 0.15;
+			light = new KLight::Light(tvec3(0, size_y + 2, 0));
+			light->factor = size_y * 0.15;
 		}
-		~EulerClothRenderer()override {
+		~VerletClothRenderer()override {
 			delete floor;
 			delete sphere;
 			delete cloth;
@@ -126,13 +126,13 @@ namespace KRenderer {
 				//now_time = window->getRunTime() - now_time;
 				//if (!KFunction::isZero(now_time)) {
 				//	back_shader->bind();
-				//	back_shader->bindUniform1f("delta_time", now_time);
+				//	back_shader->bindUniform1f("last_dt", 1.f / 60.f);
+				//	back_shader->bindUniform1f("delta_time", 1.f / 60.f);
 				//	cloth->renderBack();
 				//}
 				//now_time = window->getRunTime();
 
 				back_shader->bind();
-				back_shader->bindUniform1f("delta_time", 1.f / 60.f);
 				cloth->renderBack();
 
 				shader->bind();
@@ -156,7 +156,7 @@ namespace KRenderer {
 		void resize(Kint w, Kint h)override {
 #ifdef IMGUI_ENABLE
 			Renderer::resize(w - 300, h);
-			if(w > 300 && h > 0) camera->setPerspective(60.0f, Kfloat(w - 300) / Kfloat(h), 0.1f, 1000.0f);
+			if (w > 300 && h > 0) camera->setPerspective(60.0f, Kfloat(w - 300) / Kfloat(h), 0.1f, 1000.0f);
 #else
 			Renderer::resize(w, h);
 			if (w > 0 && h > 0) camera->setPerspective(60.0f, Kfloat(w) / Kfloat(h), 0.1f, 1000.0f);
@@ -166,5 +166,5 @@ namespace KRenderer {
 	};
 }
 
-#endif // !EULER_CLOTH_RENDERER_H
+#endif // !VERLET_CLOTH_RENDERER_H
 

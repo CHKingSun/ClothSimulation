@@ -81,7 +81,7 @@ namespace KBuffer {
 			}
 			glBindBuffer(GL_TRANSFORM_FEEDBACK_BUFFER, buffers[index]);
 			auto data = new float[buffers_size[index] / sizeof(Kfloat)];
-			glGetBufferSubData(GL_TRANSFORM_FEEDBACK_BUFFER, index, buffers_size[index], data);
+			glGetBufferSubData(GL_TRANSFORM_FEEDBACK_BUFFER, 0, buffers_size[index], data);
 			return data;
 		}
 
@@ -93,7 +93,7 @@ namespace KBuffer {
 			}
 			glBindBuffer(GL_TRANSFORM_FEEDBACK_BUFFER, buffers[index]);
 			auto data = new KVector::Vec2[buffers_size[index] / sizeof(KVector::Vec2)];
-			glGetBufferSubData(GL_TRANSFORM_FEEDBACK_BUFFER, index, buffers_size[index], data);
+			glGetBufferSubData(GL_TRANSFORM_FEEDBACK_BUFFER, 0, buffers_size[index], data);
 			return data;
 		}
 
@@ -105,7 +105,7 @@ namespace KBuffer {
 			}
 			glBindBuffer(GL_TRANSFORM_FEEDBACK_BUFFER, buffers[index]);
 			auto data = new KVector::Vec3[buffers_size[index] / sizeof(KVector::Vec3)];
-			glGetBufferSubData(GL_TRANSFORM_FEEDBACK_BUFFER, index, buffers_size[index], data);
+			glGetBufferSubData(GL_TRANSFORM_FEEDBACK_BUFFER, 0, buffers_size[index], data);
 			return data;
 		}
 
@@ -117,7 +117,7 @@ namespace KBuffer {
 			}
 			glBindBuffer(GL_TRANSFORM_FEEDBACK_BUFFER, buffers[index]);
 			auto data = new KVector::Vec4[buffers_size[index] / sizeof(KVector::Vec4)];
-			glGetBufferSubData(GL_TRANSFORM_FEEDBACK_BUFFER, index, buffers_size[index], data);
+			glGetBufferSubData(GL_TRANSFORM_FEEDBACK_BUFFER, 0, buffers_size[index], data);
 			return data;
 		}
 
@@ -129,7 +129,7 @@ namespace KBuffer {
 			}
 			glBindBuffer(GL_TRANSFORM_FEEDBACK_BUFFER, buffers[index]);
 			auto data = new KMatrix::Mat3[buffers_size[index] / sizeof(KMatrix::Mat3)];
-			glGetBufferSubData(GL_TRANSFORM_FEEDBACK_BUFFER, index, buffers_size[index], data);
+			glGetBufferSubData(GL_TRANSFORM_FEEDBACK_BUFFER, 0, buffers_size[index], data);
 			return data;
 		}
 
@@ -141,7 +141,7 @@ namespace KBuffer {
 			}
 			glBindBuffer(GL_TRANSFORM_FEEDBACK_BUFFER, buffers[index]);
 			auto data = new KMatrix::Mat4[buffers_size[index] / sizeof(KMatrix::Mat4)];
-			glGetBufferSubData(GL_TRANSFORM_FEEDBACK_BUFFER, index, buffers_size[index], data);
+			glGetBufferSubData(GL_TRANSFORM_FEEDBACK_BUFFER, 0, buffers_size[index], data);
 			return data;
 		}
 
