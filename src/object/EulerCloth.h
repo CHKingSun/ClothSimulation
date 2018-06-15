@@ -19,17 +19,21 @@ namespace KObject {
 	//Use GPU and Euler mathod
 	class EulerCloth : public Object3D {
 	private:
+		const Kfloat length = 9.6f;
 		Ksize size;
 		Ksize count;
 
-		const Kfloat mass = 0.05f;
 		const Kfloat a_resistance = -0.0125f;
 		const tvec3 f_wind = tvec3(0.f);
 		
-		const Kfloat ks = 20.f;
+		const Kfloat mass = 0.1f;
+		const Kfloat ks = 15.f;
 		const Kfloat kd = 0.96f;
+		const Kfloat ks_bend = 0.036f;
+		const Kfloat kd_bend = 0.96f;
 
-		const Kfloat length = 9.6f;
+		const Kfloat delta_time = 1.f / 60.f;
+
 		Kfloat rest_length; //length / size
 		Kfloat diag_length; //rest_length * sqrt(2)
 
@@ -195,8 +199,12 @@ namespace KObject {
 			
 			back_shader->bindUniform1f("ks", ks);
 			back_shader->bindUniform1f("kd", kd);
+			back_shader->bindUniform1f("ks_bend", ks_bend);
+			back_shader->bindUniform1f("kd_bend", kd_bend);
+			back_shader->bindUniform1f("delta_time", delta_time);
+
 			back_shader->bindUniform1f("rest_length", rest_length);
-			//back_shader->bindUniform1f("diag_length", diag_length);
+			back_shader->bindUniform1f("diag_length", diag_length);
 
 			back_shader->bindUniform3f("u_position", position);
 

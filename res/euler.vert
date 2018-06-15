@@ -4,12 +4,14 @@ const vec3 gravity = vec3(0.f, -9.8f, 0.f);
 
 uniform int size; //cloth scale
 
-uniform float mass; //1.f
+uniform float mass;
 uniform float a_resistance; //-0.125f
 uniform vec3 f_wind; //vec3(0.f, 0.f, 0.f)
 
-uniform float ks; //15.f
-uniform float kd; //0.9f
+uniform float ks;
+uniform float kd;
+uniform float ks_bend;
+uniform float kd_bend;
 uniform float rest_length; //1.f
 uniform float diag_length; //sqrt(2) * rest_length
 
@@ -39,27 +41,26 @@ bool getSpringMsg(inout int index, inout float r_length) {
     int i = gl_VertexID / size;
     int j = gl_VertexID % size;
     switch(index) {
-    // case 0:
-    //     return false;
-    //     if(i == 0 || j == 0) return false;
-    //     index = gl_VertexID - size - 1;
-    //     r_length = diag_length;
-    //     return true;
-    // case 2:
-    //     if(i == 0 || j == size - 1) return false;
-    //     index = gl_VertexID - size + 1;
-    //     r_length = diag_length;
-    //     return true;
-    // case 5:
-    //     if(i == size - 1 || j == 0) return false;
-    //     index = gl_VertexID + size - 1;
-    //     r_length = diag_length;
-    //     return true;
-    // case 7:
-    //     if(i == size - 1 || j == size - 1) return false;
-    //     index = gl_VertexID + size + 1;
-    //     r_length = diag_length;
-    //     return true;
+    case 0:
+        if(i == 0 || j == 0) return false;
+        index = gl_VertexID - size - 1;
+        r_length = diag_length;
+        return true;
+    case 2:
+        if(i == 0 || j == size - 1) return false;
+        index = gl_VertexID - size + 1;
+        r_length = diag_length;
+        return true;
+    case 5:
+        if(i == size - 1 || j == 0) return false;
+        index = gl_VertexID + size - 1;
+        r_length = diag_length;
+        return true;
+    case 7:
+        if(i == size - 1 || j == size - 1) return false;
+        index = gl_VertexID + size + 1;
+        r_length = diag_length;
+        return true;
 
     case 1:
         if(i == 0) return false;
@@ -142,10 +143,15 @@ void main() {
             if(getSpringMsg(index, r_length)) {
                 vec3 p1 = texelFetch(vertices_tbo, index).xyz;
                 vec3 v1 = texelFetch(velocities_tbo, index).xyz;
-                float delta_length = distance(p0, p1) - r_length;
-                if(delta_length <= 0.f) continue;
-                vec3 deltaP = normalize(p0 - p1);
-                acceleration += -(ks * delta_length + kd * dot(deltaP, v0 - v1)) * deltaP;
+                vec3 deltaP = p0 - p1;
+                float delta_length = length(deltaP);
+                if(delta_length - r_length <= 0.f) continue;
+
+                if(r_length != diag_length)
+                    acceleration += -(ks * (delta_length - r_length) +
+                        kd * dot(deltaP, v0 - v1) / delta_length) * normalize(deltaP);
+                else acceleration += -(ks_bend * (delta_length - r_length) +
+                        kd_bend * dot(deltaP, v0 - v1) / delta_length) * normalize(deltaP);
             }
         }
         acceleration /= mass;

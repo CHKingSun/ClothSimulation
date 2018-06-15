@@ -14,6 +14,10 @@
 #include "../math/Quaternion.h"
 
 namespace KCamera{
+	enum DirectionType {
+		RIGHT, LEFT, BACK, FORWARD
+	};
+
 	class Camera {
 		using tvec3 = KVector::Vec3;
 		using tmat3 = KMatrix::Mat3;
@@ -106,6 +110,23 @@ namespace KCamera{
 
 		void translate(const tvec3 &v) {
 			position += v;
+		}
+
+		tvec3 getDirection(DirectionType type = FORWARD)const {
+			switch (type)
+			{
+			case KCamera::FORWARD:
+				return -view * tvec3(0, 0, -1);
+			case KCamera::BACK:
+				return -view * tvec3(0, 0, 1);
+			case KCamera::LEFT:
+				return rotate * -view * tvec3(-1, 0, 0);
+			case KCamera::RIGHT:
+				return rotate * -view * tvec3(1, 0, 0);
+			default:
+				break;
+			}
+			return -view * tvec3(0, 0, -1);
 		}
 
 #ifdef IMGUI_ENABLE

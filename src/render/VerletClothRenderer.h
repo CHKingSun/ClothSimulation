@@ -24,6 +24,16 @@ namespace KRenderer {
 		KCamera::Camera* camera;
 		KLight::Light* light;
 
+		void mouseWheelEvent(Kdouble yoffset)override {
+			if (yoffset > 0) {
+				camera->translate(camera->getDirection(KCamera::FORWARD));
+			}
+			else if (yoffset < 0) {
+				camera->translate(camera->getDirection(KCamera::BACK));
+			}
+			camera->bindPosition(shader);
+		}
+
 	public:
 		VerletClothRenderer(): Renderer(RES_PATH + "phong.vert",
 			RES_PATH + "phong.frag", "ClothSimulation"),
@@ -39,17 +49,17 @@ namespace KRenderer {
 			sphere = new KObject::Sphere(3, 30, 30);
 			sphere->translate(tvec3(0, 2, 0));
 
-			Kuint size_x = 20, size_y = 20;
+			Kuint size_x = 100, size_y = 100;
 			cloth = new KObject::VerletCloth(size_x, size_y);
 			cloth->setPosition(tvec3(0.f, 3.f, 0.f));
 
 			camera = new KCamera::Camera(tvec3(0, 12, 15));
 			tvec2 wSize = window->getWindowSize();
 			camera->setPerspective(60.0f, wSize.x / wSize.y, 0.1f, 1000.0f);
-			camera->rotateView(24, tvec3(-1, 0, 0));
+			camera->rotateView(18, tvec3(-1, 0, 0));
 
-			light = new KLight::Light(tvec3(0, size_y + 2, 0));
-			light->factor = size_y * 0.15;
+			light = new KLight::Light(tvec3(0, 12, 0));
+			light->factor = 1.5;
 		}
 		~VerletClothRenderer()override {
 			delete floor;
@@ -118,7 +128,8 @@ namespace KRenderer {
 				if (mouse[GLFW_MOUSE_BUTTON_LEFT] &&
 					last_mouse.x != mouse_pos.x) {
 					static const tvec3 center(0.0f, 1.0f, 0.0f);
-					camera->rotateCamera(-atan((mouse_pos.x - last_mouse.x) / 2.0) * 3.0f, center);
+					camera->rotateCamera(
+						-atan((mouse_pos.x - last_mouse.x) / 2.0) * 3.0f, center);
 					camera->bindPosition(shader);
 				}
 				last_mouse = mouse_pos;

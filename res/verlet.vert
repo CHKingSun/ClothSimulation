@@ -1,7 +1,5 @@
 #version 330 core
 
-const vec3 gravity = vec3(0.f, -9.8f, 0.f);
-
 uniform ivec2 size;
 uniform vec2 rest_length;
 uniform float diag_length;
@@ -12,13 +10,15 @@ uniform float ks_bend;
 uniform float kd_bend;
 
 uniform float mass;
+uniform vec3 gravity;
 uniform float a_resistance;
 uniform vec3 f_wind;
 
-uniform float last_dt;
 uniform float delta_time;
 
 uniform vec3 u_position;
+uniform vec3 s_center;
+uniform float s_radius;
 
 uniform isamplerBuffer constraints_tbo;
 uniform samplerBuffer last_vertices_tbo;
@@ -26,6 +26,7 @@ uniform samplerBuffer vertices_tbo;
 
 layout(location = 0) out vec3 o_last_vertex;
 layout(location = 1) out vec3 o_vertex;
+layout(location = 2) out vec3 o_point;
 
 bool getSpringMsg(inout int index, inout float r_length) {
     // p - p - 8 - p - p
@@ -42,7 +43,6 @@ bool getSpringMsg(inout int index, inout float r_length) {
     int j = gl_VertexID % size.x;
     switch(index) {
     case 0:
-        return false;
         if(i == 0 || j == 0) return false;
         index = gl_VertexID - size.x - 1;
         r_length = diag_length;
@@ -109,9 +109,15 @@ bool getSpringMsg(inout int index, inout float r_length) {
 }
 
 void dealCollision() {
-    if(o_vertex.y + u_position.y < 0.00072f) {
-        o_vertex.y = 0.00072f - u_position.y;
+    o_vertex += u_position;
+    // if(distance(o_vertex, s_center) < s_radius) {
+    //     o_vertex = normalize(o_vertex - s_center) * s_radius;
+    //     o_last_vertex = o_vertex - u_position;
+    // }
+    if(o_vertex.y < 0.00072f) {
+        o_vertex.y = 0.00072f;
     }
+    o_vertex -= u_position;
 }
 
 vec3 calAirForce(vec3 velocity) {
@@ -119,11 +125,12 @@ vec3 calAirForce(vec3 velocity) {
 
     // return vec3(0.f);
     // return a_resistance * velocity;
-    return (a_resistance * dot(velocity, velocity)) * normalize(velocity);
+    return (a_resistance * length(velocity)) * velocity;
 }
 
 void main() {
     //gl_VertexID: save the index of current vertex
+    gl_VertexID = size.x * size.y - gl_VertexID - 1;
     vec3 last_p = texelFetch(last_vertices_tbo, gl_VertexID).xyz;
     vec3 now_p = texelFetch(vertices_tbo, gl_VertexID).xyz;
     bool constraint = texelFetch(constraints_tbo, gl_VertexID / 4)[gl_VertexID % 4] != 0;
@@ -131,19 +138,21 @@ void main() {
     if(constraint) {
         o_last_vertex = now_p;
         o_vertex = now_p;
+        o_point = o_vertex;
         return;
     }
 
     if(delta_time == 0.f) {
         o_last_vertex = last_p;
         o_vertex = now_p;
+        o_point = o_vertex;
         return;
     }
 
     vec3 delta_p = now_p - last_p;
     vec3 acceleration = vec3(0.f);
     if(mass != 0.f) {
-        vec3 vel = delta_p / last_dt;
+        vec3 vel = delta_p / delta_time;
         acceleration = mass * gravity + f_wind + calAirForce(vel);
         for(int i = 0; i < 12; ++i) {
             int index = i;
@@ -151,15 +160,16 @@ void main() {
             if(getSpringMsg(index, r_length)) {
                 vec3 n_last_p = texelFetch(last_vertices_tbo, index).xyz;
                 vec3 n_now_p = texelFetch(vertices_tbo, index).xyz;
-                float delta_length = distance(now_p, n_now_p) - r_length;
-                if(delta_length <= 0.f) continue;
-                vec3 n_vel = (n_now_p - n_last_p) / last_dt;
-                vec3 dp = normalize(now_p - n_now_p);
+                vec3 dp = now_p - n_now_p;
+                float delta_length = length(dp);
+                if(delta_length - r_length <= 0.f) continue;
+
+                vec3 n_vel = (n_now_p - n_last_p) / delta_time;
                 if(r_length != diag_length) 
-                    acceleration += -(ks * delta_length +
-                                    kd * dot(dp, vel - n_vel)) * dp;
-                else acceleration += -(ks_bend * delta_length +
-                                    kd_bend * dot(dp, vel - n_vel)) * dp;
+                    acceleration += -(ks * (delta_length - r_length) +
+                        kd * dot(dp, vel - n_vel) / delta_length) * normalize(dp);
+                else acceleration += -(ks_bend * (delta_length - r_length) +
+                        kd_bend * dot(dp, vel - n_vel) / delta_length) * normalize(dp);
 
             }
         }
@@ -170,4 +180,5 @@ void main() {
     o_vertex = now_p + delta_p + acceleration * delta_time * delta_time;
 
     dealCollision();
+    o_point = o_vertex;
 }

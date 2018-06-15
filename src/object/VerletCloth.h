@@ -19,21 +19,21 @@ namespace KObject {
 	//Use GPU and Verlet mathod
 	class VerletCloth : public Object3D {
 	private:
-		tvec2 length = tvec2(9.6f);
+		const tvec2 length = tvec2(10.f);
 		Ksize size_x, size_y;
 		Ksize count;
 
 		const Kfloat a_resistance = -0.0125f;
-		const tvec3 f_wind = tvec3(0.1f, 0.f, -0.02f);
+		const tvec3 f_wind = tvec3(0.f, 0.01f, -0.01f);
 
+		tvec3 gravity = tvec3(0.f, -0.98f, 0.f);
 		const Kfloat mass = 0.1f;
-		const Kfloat ks = 100.f;
-		const Kfloat kd = 0.48f;
-		const Kfloat ks_bend = 3.6f;
-		const Kfloat kd_bend = 0.48f;
+		Kfloat ks = 120.f;
+		const Kfloat kd = 0.60f;
+		Kfloat ks_bend = 36.f;
+		const Kfloat kd_bend = 0.60f;
 
-		const Kfloat delta_time = 1.f / 60.f;
-		const Kfloat last_dt = 1.f / 60.f;
+		Kfloat delta_time = 1.f / 60.f;
 
 		tvec2 rest_length = tvec2(1.f); //length / size
 		Kfloat diag_length = rest_length.length(); //rest_length.length()
@@ -61,6 +61,13 @@ namespace KObject {
 			rest_length = length / tvec2(size_x - 1, size_y - 1);
 			diag_length = rest_length.length();
 
+			//Kfloat mt = (rest_length.x + rest_length.y) / 20.f;
+			//Kfloat mt = (length.x * length.y) / (size_x * size_y);
+			//gravity.y *= mt;
+			//ks *= mt;
+			//ks_bend *= mt;
+			//delta_time *= mt;
+
 			Kfloat pertex_x = 1.f / (size_x - 1);
 			Kfloat pertex_y = 1.f / (size_y - 1);
 			//Kfloat y = length.y;
@@ -75,9 +82,6 @@ namespace KObject {
 					texcoords->emplace_back(tx, ty);
 				}
 			}
-
-			//m_scale = tvec3(length.x / (size_x - 1), length.y / (size_y - 1), 1.f);
-			//m_scale = tvec3(length.x / (size_x - 1), 1.f, length.y / (size_y - 1));
 
 			vertices_sampler = new KBuffer::TextureBuffer(vertices->size() * sizeof(tvec3),
 				vertices->data());
@@ -138,7 +142,7 @@ namespace KObject {
 			//material->diffuse = tvec4(0.41f, 0.69f, 0.67f, 1.f);
 			//material->specular = tvec4(0.40f, 0.73f, 0.72f, 1.f);
 			material->shininess = 3.0;
-			material->setTexture(RES_PATH + "earth.jpg");
+			material->setTexture(RES_PATH + "cloth.jpg");
 
 			generate();
 			initArray();
@@ -165,13 +169,19 @@ namespace KObject {
 			back_buffer = new KBuffer::BackBuffer(back_shader,
 			{
 				"o_last_vertex",
+				"o_point",
 				"o_vertex"
 			},
 			{
 				size_x * size_y * sizeof(tvec3),
+				size_x * size_y * sizeof(tvec3),
 				size_x * size_y * sizeof(tvec3)
 			},
 			GL_SEPARATE_ATTRIBS);
+
+			//last_vertices_sampler->bindToBackBuffer(0, back_buffer);
+			//vertices_sampler->bindToBackBuffer(2, back_buffer);
+			//vbo->bindToBackBuffer(1, back_buffer);
 		}
 
 		void bindBackUniform(const KShader::Shader* back_shader)const {
@@ -179,11 +189,11 @@ namespace KObject {
 			back_shader->bindUniform2f("rest_length", rest_length);
 			back_shader->bindUniform1f("diag_length", diag_length);
 
+			back_shader->bindUniform3f("gravity", gravity);
 			back_shader->bindUniform1f("mass", mass);
 			back_shader->bindUniform1f("a_resistance", a_resistance);
 			back_shader->bindUniform3f("f_wind", f_wind);
 
-			back_shader->bindUniform1f("last_dt", last_dt);
 			back_shader->bindUniform1f("delta_time", delta_time);
 
 			back_shader->bindUniform1f("ks", ks);
@@ -192,6 +202,8 @@ namespace KObject {
 			back_shader->bindUniform1f("kd_bend", kd_bend);
 
 			back_shader->bindUniform3f("u_position", position);
+			back_shader->bindUniform3f("s_center", tvec3(0, 4, 0));
+			back_shader->bindUniform1f("s_radius", 1.f);
 
 			constraints_sampler->bind(back_shader, "constraints_tbo", 0);
 			last_vertices_sampler->bind(back_shader, "last_vertices_tbo", 1);
@@ -203,7 +215,11 @@ namespace KObject {
 			glEnable(GL_RASTERIZER_DISCARD);
 			back_buffer->enable();
 
-			glDrawArrays(GL_POINTS, 0, size_x * size_y);
+			int t = 5;
+
+			while (t--) {
+				glDrawArrays(GL_POINTS, 0, size_x * size_y);
+			}
 
 			back_buffer->disable();
 			glDisable(GL_RASTERIZER_DISCARD);
@@ -213,6 +229,7 @@ namespace KObject {
 			vbo->copyDataFormBuffer(1, back_buffer);
 			vertices_sampler->copyDataFromBuffer(1, back_buffer);
 			
+			save_data(back_buffer->getData<Kfloat>(1), size_x);
 			//const tvec3* data0 = back_buffer->getData<tvec3>(0);
 			//const tvec3* data1 = back_buffer->getData<tvec3>(1);
 		}
@@ -220,12 +237,12 @@ namespace KObject {
 		void render()const override {
 			bind();
 
-			//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 			glEnable(GL_PRIMITIVE_RESTART);
 			glPrimitiveRestartIndex(0XFFFFFFFF);
 			glDrawElements(GL_TRIANGLE_STRIP, count, GL_UNSIGNED_INT, nullptr);
 			glDisable(GL_PRIMITIVE_RESTART);
-			//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 			unBind();
 		}

@@ -63,4 +63,21 @@ bool glCheckError(const char* fun, const char* file, int line) {
 	return true;
 }
 
+#include <fstream>
+
+std::ofstream os("data.txt");
+Kuint n = 0;
+
+void save_data(const Kfloat* data, int size) {
+	if (n > 30) {
+		if (os.is_open()) os.close();
+	}
+	os << n++ << "\n";
+	for (int i = 0; i < 2 * 3 * size;) {
+		os << data[i++] << " " << data[i++] << " " << data[i++] << "\t";
+		if (i == size * 3) os << "\n";
+	}
+	os << "\n";
+}
+
 #endif //HEADER_H
