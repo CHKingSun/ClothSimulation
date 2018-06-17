@@ -24,14 +24,14 @@ namespace KObject {
 		Ksize count;
 
 		const Kfloat a_resistance = -0.0125f;
-		const tvec3 f_wind = tvec3(0.f, 0.01f, -0.01f);
+		const tvec3 f_wind = tvec3(0.f, 0.0f, -0.0f);
 
-		tvec3 gravity = tvec3(0.f, -0.98f, 0.f);
+		tvec3 gravity = tvec3(0.f, -0.0098f, 0.f);
 		const Kfloat mass = 0.1f;
-		Kfloat ks = 120.f;
+		Kfloat ks = 200.f;
 		const Kfloat kd = 0.60f;
-		Kfloat ks_bend = 36.f;
-		const Kfloat kd_bend = 0.60f;
+		Kfloat ks_bend = 9.6f;
+		const Kfloat kd_bend = 0.24f;
 
 		Kfloat delta_time = 1.f / 60.f;
 
@@ -90,15 +90,17 @@ namespace KObject {
 
 			auto constraints = new Kubyte[size_x * size_y];
 			memset(constraints, 0, size_x * size_y * sizeof(Kubyte));
-			for (int i = 0; i < size_x; ++i) {
-				constraints[i] = true;
-			}
+			//for (int i = 0; i < size_x; ++i) {
+			//	constraints[i] = true;
+			//}
 			constraints[0] = true;
 			constraints[size_x - 1] = true;
 			constraints_sampler = new KBuffer::TextureBuffer(size_x * size_y * sizeof(Kubyte), constraints, GL_RGBA8UI);
 			delete constraints;
 
 			indices = new std::vector<Kuint>();
+//#define PRIMITIVE
+#ifdef PRIMITIVE
 			count = (size_y - 1) * (size_x * 2 + 1) - 1;
 			indices->reserve(count + 1);
 			Kuint index = 0;
@@ -109,6 +111,22 @@ namespace KObject {
 				}
 				indices->emplace_back(0XFFFFFFFF);
 			}
+#else
+			count = (size_x - 1) * (size_y - 1) * 6;
+			indices->reserve(count);
+			for (int i = 0; i < size_y - 1; ++i) {
+				for (int j = 0; j < size_x - 1; ++j) {
+					Kuint index = i * size_x + j;
+					indices->emplace_back(index);
+					indices->emplace_back(index + size_x);
+					indices->emplace_back(index + 1);
+
+					indices->emplace_back(index + size_x);
+					indices->emplace_back(index + 1);
+					indices->emplace_back(index + size_x + 1);
+				}
+			}
+#endif
 		}
 
 		void initArray() {
@@ -126,6 +144,7 @@ namespace KObject {
 
 			ibo = new KBuffer::VertexBuffer(count * sizeof(Ksize), indices->data(), KBuffer::INDEX);
 
+			delete vertices; vertices = nullptr;
 			delete texcoords; texcoords = nullptr;
 			delete indices; indices = nullptr;
 		}
@@ -169,19 +188,28 @@ namespace KObject {
 			back_buffer = new KBuffer::BackBuffer(back_shader,
 			{
 				"o_last_vertex",
+#define KDATA
+#ifndef KDATA
 				"o_point",
+#endif
 				"o_vertex"
 			},
 			{
-				size_x * size_y * sizeof(tvec3),
+#ifdef KDATA
 				size_x * size_y * sizeof(tvec3),
 				size_x * size_y * sizeof(tvec3)
+#else
+				0, 0, 0
+#endif
 			},
 			GL_SEPARATE_ATTRIBS);
 
-			//last_vertices_sampler->bindToBackBuffer(0, back_buffer);
-			//vertices_sampler->bindToBackBuffer(2, back_buffer);
-			//vbo->bindToBackBuffer(1, back_buffer);
+#ifndef KDATA
+			//GPU will change the buffer data once it calculated.
+			last_vertices_sampler->bindToBackBuffer(0, back_buffer);
+			vertices_sampler->bindToBackBuffer(2, back_buffer);
+			vbo->bindToBackBuffer(1, back_buffer);
+#endif // !KDATA
 		}
 
 		void bindBackUniform(const KShader::Shader* back_shader)const {
@@ -202,8 +230,6 @@ namespace KObject {
 			back_shader->bindUniform1f("kd_bend", kd_bend);
 
 			back_shader->bindUniform3f("u_position", position);
-			back_shader->bindUniform3f("s_center", tvec3(0, 4, 0));
-			back_shader->bindUniform1f("s_radius", 1.f);
 
 			constraints_sampler->bind(back_shader, "constraints_tbo", 0);
 			last_vertices_sampler->bind(back_shader, "last_vertices_tbo", 1);
@@ -215,7 +241,7 @@ namespace KObject {
 			glEnable(GL_RASTERIZER_DISCARD);
 			back_buffer->enable();
 
-			int t = 5;
+			int t = 10;
 
 			while (t--) {
 				glDrawArrays(GL_POINTS, 0, size_x * size_y);
@@ -224,25 +250,30 @@ namespace KObject {
 			back_buffer->disable();
 			glDisable(GL_RASTERIZER_DISCARD);
 
-
+#ifdef KDATA
 			last_vertices_sampler->copyDataFromBuffer(0, back_buffer);
 			vbo->copyDataFormBuffer(1, back_buffer);
 			vertices_sampler->copyDataFromBuffer(1, back_buffer);
 			
-			save_data(back_buffer->getData<Kfloat>(1), size_x);
+			//save_data(back_buffer->getData<Kfloat>(1), size_x);
 			//const tvec3* data0 = back_buffer->getData<tvec3>(0);
 			//const tvec3* data1 = back_buffer->getData<tvec3>(1);
+#endif // KDATA
 		}
 
 		void render()const override {
 			bind();
 
-			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+			//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+#ifdef PRIMITIVE
 			glEnable(GL_PRIMITIVE_RESTART);
 			glPrimitiveRestartIndex(0XFFFFFFFF);
 			glDrawElements(GL_TRIANGLE_STRIP, count, GL_UNSIGNED_INT, nullptr);
 			glDisable(GL_PRIMITIVE_RESTART);
-			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+#else
+			glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, nullptr);
+#endif
+			//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 			unBind();
 		}

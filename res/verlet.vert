@@ -1,5 +1,7 @@
 #version 330 core
 
+const float EXPSION = 0.00072; //deal with Z fighting
+
 uniform ivec2 size;
 uniform vec2 rest_length;
 uniform float diag_length;
@@ -24,9 +26,9 @@ uniform isamplerBuffer constraints_tbo;
 uniform samplerBuffer last_vertices_tbo;
 uniform samplerBuffer vertices_tbo;
 
-layout(location = 0) out vec3 o_last_vertex;
-layout(location = 1) out vec3 o_vertex;
-layout(location = 2) out vec3 o_point;
+out vec3 o_last_vertex;
+out vec3 o_vertex;
+out vec3 o_point;
 
 bool getSpringMsg(inout int index, inout float r_length) {
     // p - p - 8 - p - p
@@ -110,12 +112,12 @@ bool getSpringMsg(inout int index, inout float r_length) {
 
 void dealCollision() {
     o_vertex += u_position;
-    // if(distance(o_vertex, s_center) < s_radius) {
-    //     o_vertex = normalize(o_vertex - s_center) * s_radius;
-    //     o_last_vertex = o_vertex - u_position;
-    // }
-    if(o_vertex.y < 0.00072f) {
-        o_vertex.y = 0.00072f;
+    if(distance(o_vertex, s_center) <= s_radius) {
+        o_vertex = normalize(o_vertex - s_center) * (s_radius + EXPSION) + s_center;
+        o_last_vertex = o_vertex - u_position;
+    }
+    if(o_vertex.y < EXPSION) {
+        o_vertex.y = EXPSION;
     }
     o_vertex -= u_position;
 }
@@ -130,7 +132,6 @@ vec3 calAirForce(vec3 velocity) {
 
 void main() {
     //gl_VertexID: save the index of current vertex
-    gl_VertexID = size.x * size.y - gl_VertexID - 1;
     vec3 last_p = texelFetch(last_vertices_tbo, gl_VertexID).xyz;
     vec3 now_p = texelFetch(vertices_tbo, gl_VertexID).xyz;
     bool constraint = texelFetch(constraints_tbo, gl_VertexID / 4)[gl_VertexID % 4] != 0;

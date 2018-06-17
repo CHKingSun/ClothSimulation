@@ -46,14 +46,14 @@ namespace KRenderer {
 			floor = new KObject::Plane(80, 80, 40, 40);
 			floor->rotate(90, tvec3(-1, 0, 0));
 
-			sphere = new KObject::Sphere(3, 30, 30);
-			sphere->translate(tvec3(0, 2, 0));
+			sphere = new KObject::Sphere(2, 30, 30);
+			sphere->translate(tvec3(0, 4, 0));
 
 			Kuint size_x = 100, size_y = 100;
 			cloth = new KObject::VerletCloth(size_x, size_y);
-			cloth->setPosition(tvec3(0.f, 3.f, 0.f));
+			//cloth->setPosition(tvec3(0.f, 3.f, 0.f));
 
-			camera = new KCamera::Camera(tvec3(0, 12, 15));
+			camera = new KCamera::Camera(tvec3(0, 10, 15));
 			tvec2 wSize = window->getWindowSize();
 			camera->setPerspective(60.0f, wSize.x / wSize.y, 0.1f, 1000.0f);
 			camera->rotateView(18, tvec3(-1, 0, 0));
@@ -86,6 +86,7 @@ namespace KRenderer {
 			back_shader->bind();
 			cloth->initBackBuffer(back_shader);
 			cloth->bindBackUniform(back_shader);
+			back_shader->bindUniform3f("s_center", sphere->getPosition());
 
 			shader->bind();
 			camera->bindUniform(shader);
@@ -134,16 +135,13 @@ namespace KRenderer {
 				}
 				last_mouse = mouse_pos;
 
-				//now_time = window->getRunTime() - now_time;
-				//if (!KFunction::isZero(now_time)) {
-				//	back_shader->bind();
-				//	back_shader->bindUniform1f("last_dt", 1.f / 60.f);
-				//	back_shader->bindUniform1f("delta_time", 1.f / 60.f);
-				//	cloth->renderBack();
-				//}
-				//now_time = window->getRunTime();
-
 				back_shader->bind();
+				if (sphere_enable) {
+					back_shader->bindUniform1f("s_radius", sphere->getRadius());
+				}
+				else {
+					back_shader->bindUniform1f("s_radius", 0.f);
+				}
 				cloth->renderBack();
 
 				shader->bind();

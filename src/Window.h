@@ -49,7 +49,7 @@ namespace KWindow {
 			}
 
 			glClearColor(0.17f, 0.17f, 0.17f, 1.0f);
-			glfwSwapInterval(1);
+			//glfwSwapInterval(1);
 
 #ifdef IMGUI_ENABLE
 			// Setup ImGui binding
@@ -110,7 +110,7 @@ namespace KWindow {
 		}
 
 		void clear() {
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		}
 
 		void setClearColor(const KVector::Vec4& color = KVector::Vec4(0.17f, 0.17f, 0.17f, 1.0f)) {

@@ -88,7 +88,7 @@ namespace KObject {
 			delete constraints;
 
 			indices = new std::vector<Kuint>();
-#define PRIMITIVE
+//#define PRIMITIVE
 #ifdef PRIMITIVE
 			count = (size - 1) * (size * 2 + 1) - 1;
 			indices->reserve(count + 1);

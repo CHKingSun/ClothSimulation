@@ -117,6 +117,10 @@ namespace KObject {
 			shader->bindUniform3f(U_SCALE, m_scale);
 		}
 
+		const KVector::Vec3& getPosition()const {
+			return position;
+		}
+
 		virtual void render()const = 0;
 
 #ifdef IMGUI_ENABLE

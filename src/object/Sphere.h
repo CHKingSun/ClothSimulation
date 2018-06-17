@@ -124,6 +124,10 @@ namespace KObject {
 
 			unBind();
 		}
+
+		Kfloat getRadius()const {
+			return radius;
+		}
 	};
 }
 
